@@ -106,16 +106,22 @@ namespace PipeTreeV4
                     startelements.Add(maxpipe);
                 
             }
+            List<Node> nodes = new List<Node>();
             foreach (var startelement in startelements)
             {
-                var systemtype = (((MEPSystem)doc.GetElement(startelement) as PipingSystem).SystemType);
+                
+                var systemtype = ((doc.GetElement(startelement) as Pipe).MEPSystem as PipingSystem).SystemType;
                 Node node = new Node(doc, doc.GetElement(startelement), systemtype);
-
+                nodes.Add(node);
 
             }
-           
-             uIDocument.Selection.SetElementIds(startelements);
 
+            
+            // Я докопался до сбора данных с трубы. Завтра продолжу копать по поиску остальных элементов
+            // Что-то вроде рекурсии по обращению к последнему элементу в списке
+            // Тут надо брать элемент и проверять два попавших коннектора у кого расход больше 
+
+            
             return Result.Succeeded;
         }
     }
