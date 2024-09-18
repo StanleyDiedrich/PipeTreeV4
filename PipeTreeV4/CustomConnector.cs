@@ -17,6 +17,7 @@ namespace PipeTreeV4
         public FlowDirectionType DirectionType { get; set; }
         public ElementId NextOwnerId { get; set; }
         public double  Flow { get; set; }
+        public bool IsSelected { get; set; }
         List<CustomConnector> Connectors { get; set; } = new List<CustomConnector>();
 
         public CustomConnector(Autodesk.Revit.DB.Document document,ElementId elementId, PipeSystemType pipeSystemType)

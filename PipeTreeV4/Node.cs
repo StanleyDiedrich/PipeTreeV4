@@ -19,6 +19,9 @@ namespace PipeTreeV4
 
         public List<CustomConnector> Connectors { get; set; } = new List<CustomConnector>();
 
+        public ElementId NextOwnerId { get; set; }
+        
+
         public Node (Autodesk.Revit.DB.Document doc, Element element, PipeSystemType pipeSystemType)
         {
             Element = element;
@@ -99,6 +102,27 @@ namespace PipeTreeV4
                             }
                         }
                     }
+                    if (Connectors.Count==1)
+                    {
+                        custom.IsSelected = true;
+                    }
+                    double maxvolume = double.MinValue;
+                    CustomConnector selectedconnector = null;
+                    foreach (CustomConnector customConnector in Connectors )
+                    {
+                        double flow = customConnector.Flow;
+                        if (flow>maxvolume)
+                        {
+                            maxvolume = flow;
+                            selectedconnector = customConnector;
+                            
+                        }
+                    }
+                    if (selectedconnector!=null)
+                    {
+                        selectedconnector.IsSelected = true;
+                    }
+
 
                 }
             }
