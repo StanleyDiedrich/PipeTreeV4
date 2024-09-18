@@ -106,7 +106,13 @@ namespace PipeTreeV4
                     startelements.Add(maxpipe);
                 
             }
+            foreach (var startelement in startelements)
+            {
+                var systemtype = (((MEPSystem)doc.GetElement(startelement) as PipingSystem).SystemType);
+                Node node = new Node(doc, doc.GetElement(startelement), systemtype);
 
+
+            }
            
              uIDocument.Selection.SetElementIds(startelements);
 
