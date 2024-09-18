@@ -15,6 +15,39 @@ namespace PipeTreeV4
     public class Main : IExternalCommand
     {
         static AddInId AddInId = new AddInId(new Guid("7DAFFD0C-8A70-4D30-A0C4-AD878D4BF2DC"));
+        public ElementId GetStartPipe(Autodesk.Revit.DB.Document document, string selectedSystemNumber )
+        {
+            ElementId startPipe = null;
+            List<Element> pipes = new List<Element>();
+            List<Element> syspipes = new List<Element>();
+            pipes = new FilteredElementCollector(document).OfCategory(BuiltInCategory.OST_PipeCurves).WhereElementIsNotElementType().ToElements().ToList();
+
+            foreach (var pipe in pipes)
+            {
+                var newpipe = pipe as Pipe;
+                var fI = newpipe as MEPCurve;
+                if (fI.LookupParameter("Сокращение для системы").AsString().Equals(selectedSystemNumber))
+                {
+                    syspipes.Add(pipe);
+                }
+            }
+
+            double maxflow = -100000000;
+            Element startpipe = null;
+            foreach (var pipe in syspipes)
+            {
+                var flow = pipe.get_Parameter(BuiltInParameter.RBS_PIPE_FLOW_PARAM).AsDouble();
+                if (flow > maxflow)
+                {
+                    startpipe = pipe;
+                    maxflow = flow;
+                }
+            }
+            startPipe = startpipe.Id;
+
+            return startPipe;
+
+        }
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             UIApplication uiapp = commandData.Application;
@@ -59,11 +92,23 @@ namespace PipeTreeV4
             window.ShowDialog();
 
             List<ElementId> elIds = new List<ElementId>();
-            foreach (var el in mainViewModel.SystemElements)
+            
+
+            var systemnames = mainViewModel.SystemNumbersList;
+            //var systemelements = mainViewModel.SystemElements;
+
+            List<ElementId> startelements = new List<ElementId>();
+            foreach (var systemname in systemnames)
             {
-                elIds.Add(el.ElementId);
+                string systemName = systemname.SystemName;
+               
+                    var maxpipe = GetStartPipe(doc, systemName);
+                    startelements.Add(maxpipe);
+                
             }
-            uIDocument.Selection.SetElementIds(elIds);
+
+           
+             uIDocument.Selection.SetElementIds(startelements);
 
             return Result.Succeeded;
         }

@@ -64,8 +64,8 @@ namespace PipeTreeV4
         {
             var selectedItems = SystemNumbersList.Where(x => x.IsSelected).Select(x => x.SystemName).ToList();
             SelectedSystems = string.Join(", ", selectedItems);
-            var foundedelements = GetElements(Document, SystemNumbersList);
-            SystemElements = GetSystemElements(foundedelements);
+            //var foundedelements = GetElements(Document, SystemNumbersList);
+            //SystemElements = GetSystemElements(foundedelements);
         }
 
         private List<SystemElement> systemElements; 
@@ -84,7 +84,7 @@ namespace PipeTreeV4
 
 
 
-        public List<Element> GetElements (Autodesk.Revit.DB.Document document, ObservableCollection<SystemNumber> SystemNumbersList)
+        /*public List<Element> GetElements (Autodesk.Revit.DB.Document document, ObservableCollection<SystemNumber> SystemNumbersList)
         {
             List<Element> foundedelements= new List<Element>();
             foreach (var systemnumber in SystemNumbersList )
@@ -137,7 +137,7 @@ namespace PipeTreeV4
             }
 
             return foundedelements;
-        }
+        }*/
 
         public List<SystemElement> GetSystemElements (List<Element> elements)
         {
@@ -162,7 +162,7 @@ namespace PipeTreeV4
             Document = doc;
             SystemNumbersList = systemNumbers;
             ShowSelectedSystemsCommand = new RelayCommand(ShowSelectedSystems);
-            SystemElements = new List<SystemElement>();
+           // SystemElements = new List<SystemElement>();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
