@@ -20,7 +20,10 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-            <Button Content="Искать" Command="{Binding StartCommand}"></Button>
+            
+            <Button Content="Start" Command="{Binding ShowSelectedSystemsCommand}"/>
+
+            <Label Content="{Binding SelectedSystems}" Margin="10" FontWeight="Bold"/>
         </StackPanel>
     </Grid>
 </Window>

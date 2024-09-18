@@ -5,6 +5,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Input;
 using Autodesk.Revit.Creation;
 
 namespace PipeTreeV4
@@ -49,21 +50,40 @@ namespace PipeTreeV4
             SystemNumbersList = new ObservableCollection<SystemNumber>();
        
         }
-
-        /*public void DeleteSelectedItems()
+        private string _selectedSystems;
+        public string SelectedSystems
         {
-            // Снимаем выделение и удаляем выбранные элементы
-            var selectedItems = SystemNumbersList.Where(x => x.IsSelected).ToList();
-            foreach (var item in selectedItems)
+            get => _selectedSystems;
+            set
             {
-                SystemNumbersList.Remove(item);
+                _selectedSystems = value;
+                OnPropertyChanged(nameof(SelectedSystems));
             }
-        }*/
+        }
 
-        public MainViewModel (Autodesk.Revit.DB.Document doc, ObservableCollection<SystemNumber> systemNumbers)
+        public ICommand ShowSelectedSystemsCommand { get; }
+        
+        public void ShowSelectedSystems( object param)
+        {
+            var selectedItems = SystemNumbersList.Where(x => x.IsSelected).Select(x => x.SystemName).ToList();
+            SelectedSystems = string.Join(", ", selectedItems);
+        }
+
+            /*public void DeleteSelectedItems()
+            {
+                // Снимаем выделение и удаляем выбранные элементы
+                var selectedItems = SystemNumbersList.Where(x => x.IsSelected).ToList();
+                foreach (var item in selectedItems)
+                {
+                    SystemNumbersList.Remove(item);
+                }
+            }*/
+
+            public MainViewModel (Autodesk.Revit.DB.Document doc, ObservableCollection<SystemNumber> systemNumbers)
         {
             Document = doc;
             SystemNumbersList = systemNumbers;
+            ShowSelectedSystemsCommand = new RelayCommand(ShowSelectedSystems);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
