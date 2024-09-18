@@ -58,6 +58,13 @@ namespace PipeTreeV4
             window.DataContext = mainViewModel;
             window.ShowDialog();
 
+            List<ElementId> elIds = new List<ElementId>();
+            foreach (var el in mainViewModel.SystemElements)
+            {
+                elIds.Add(el.ElementId);
+            }
+            uIDocument.Selection.SetElementIds(elIds);
+
             return Result.Succeeded;
         }
     }

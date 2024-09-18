@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using Autodesk.Revit.Creation;
+using Autodesk.Revit.DB;
+using Autodesk.Revit.DB.Plumbing;
 
 namespace PipeTreeV4
 {
@@ -44,12 +46,7 @@ namespace PipeTreeV4
             }
         }
 
-        public MainViewModel()
-        {
-            // Заполнение примерными данными
-            SystemNumbersList = new ObservableCollection<SystemNumber>();
        
-        }
         private string _selectedSystems;
         public string SelectedSystems
         {
@@ -67,23 +64,105 @@ namespace PipeTreeV4
         {
             var selectedItems = SystemNumbersList.Where(x => x.IsSelected).Select(x => x.SystemName).ToList();
             SelectedSystems = string.Join(", ", selectedItems);
+            var foundedelements = GetElements(Document, SystemNumbersList);
+            SystemElements = GetSystemElements(foundedelements);
         }
 
-            /*public void DeleteSelectedItems()
+        private List<SystemElement> systemElements; 
+        public List<SystemElement> SystemElements
+        {
+            get { return systemElements; }
+            set
             {
-                // Снимаем выделение и удаляем выбранные элементы
-                var selectedItems = SystemNumbersList.Where(x => x.IsSelected).ToList();
-                foreach (var item in selectedItems)
-                {
-                    SystemNumbersList.Remove(item);
-                }
-            }*/
+                systemElements = value;
+                OnPropertyChanged("SystemElements");
+            }
+        }
 
+
+
+
+
+
+        public List<Element> GetElements (Autodesk.Revit.DB.Document document, ObservableCollection<SystemNumber> SystemNumbersList)
+        {
+            List<Element> foundedelements= new List<Element>();
+            foreach (var systemnumber in SystemNumbersList )
+            {
+                var mechEquip = new FilteredElementCollector(document).OfCategory(BuiltInCategory.OST_MechanicalEquipment).WhereElementIsNotElementType().ToElements();
+                var pipes = new FilteredElementCollector(document).OfCategory(BuiltInCategory.OST_PipeCurves).WhereElementIsNotElementType().ToElements();
+                var fittings = new FilteredElementCollector(document).OfCategory(BuiltInCategory.OST_PipeFitting).WhereElementIsNotElementType().ToElements();
+                var armatura = new FilteredElementCollector(document).OfCategory(BuiltInCategory.OST_PipeAccessory).WhereElementIsNotElementType().ToElements();
+
+                foreach (var meq in mechEquip)
+                {
+                    var fI = meq as FamilyInstance;
+
+                    if (fI.LookupParameter("Имя системы").AsString().Contains(systemnumber.SystemName))
+                    {
+                        foundedelements.Add(meq);
+                    }
+                }
+
+                foreach (var pipe in pipes)
+                {
+                    var newpipe = pipe as Pipe;
+                    var fI = newpipe as MEPCurve;
+                    if (fI.LookupParameter("Имя системы").AsString().Contains(systemnumber.SystemName))
+                    {
+                        foundedelements.Add(pipe);
+                    }
+                   
+                }
+                foreach (var fit in fittings)
+                {
+                    var fI = fit as FamilyInstance;
+
+                    if (fI.LookupParameter("Имя системы").AsString().Contains(systemnumber.SystemName))
+                    {
+                        foundedelements.Add(fit);
+                    }
+                }
+
+                foreach(var arm in armatura)
+                {
+                    var fI =arm as FamilyInstance;
+
+                    if (fI.LookupParameter("Имя системы").AsString().Contains(systemnumber.SystemName))
+                    {
+                        foundedelements.Add(arm);
+                    }
+                    
+                }
+            }
+
+            return foundedelements;
+        }
+
+        public List<SystemElement> GetSystemElements (List<Element> elements)
+        {
+            List<SystemElement> systemElements = new List<SystemElement>();
+            foreach (var element in elements)
+            {
+                SystemElement systemElement = new SystemElement(element);
+                systemElements.Add(systemElement);
+            }
+            return systemElements;
+        }
+
+
+
+
+
+
+
+       
             public MainViewModel (Autodesk.Revit.DB.Document doc, ObservableCollection<SystemNumber> systemNumbers)
         {
             Document = doc;
             SystemNumbersList = systemNumbers;
             ShowSelectedSystemsCommand = new RelayCommand(ShowSelectedSystems);
+            SystemElements = new List<SystemElement>();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
