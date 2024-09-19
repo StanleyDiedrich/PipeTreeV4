@@ -94,7 +94,7 @@ namespace PipeTreeV4
             List<ElementId> elIds = new List<ElementId>();
             
 
-            var systemnames = mainViewModel.SystemNumbersList;
+            var systemnames = mainViewModel.SystemNumbersList.Select(x=>x).Where(x=>x.IsSelected==true);
             //var systemelements = mainViewModel.SystemElements;
 
             List<ElementId> startelements = new List<ElementId>();
