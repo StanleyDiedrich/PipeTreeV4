@@ -109,19 +109,45 @@ namespace PipeTreeV4
             List<Node> nodes = new List<Node>();
             foreach (var startelement in startelements)
             {
-                
+                // Get the system type from the starting element
                 var systemtype = ((doc.GetElement(startelement) as Pipe).MEPSystem as PipingSystem).SystemType;
+
+                // Create a Node from the starting element
                 Node node = new Node(doc, doc.GetElement(startelement), systemtype);
                 nodes.Add(node);
+                Node lastnode = null;
+                // Start a do-while loop to traverse the next elements
+                do
+                {
+                    lastnode = nodes.Last(); // Get the last added node
+                    try
+                    {
+                        var nextElement = doc.GetElement(lastnode.NextOwnerId);
+                        Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType);
+                        nodes.Add(newnode); // Add the new node to the nodes list
+                    }
+                    catch
+                    {
+                        break;
+                    }
+                     // Get the next element using the NextOwnerId
 
+                    // Exit if there isn't a next element
+
+                    // Create a new Node from the next element while preserving the pipe system type
+                   
+
+                } 
+                while (lastnode.NextOwnerId != null ); // Continue while NextOwnerId is not null
             }
 
-            
+            uIDocument.Selection.SetElementIds(nodes.Select(x => x.ElementId).ToList());
+
             // Я докопался до сбора данных с трубы. Завтра продолжу копать по поиску остальных элементов
             // Что-то вроде рекурсии по обращению к последнему элементу в списке
             // Тут надо брать элемент и проверять два попавших коннектора у кого расход больше 
 
-            
+
             return Result.Succeeded;
         }
     }

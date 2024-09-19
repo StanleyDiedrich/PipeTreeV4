@@ -65,6 +65,11 @@ namespace PipeTreeV4
                         {
                             continue; // Игнорируем те же элементы
                         }
+                        else if (connect.Owner.Id == NextOwnerId)
+                        {
+                            continue;
+                        }
+                       
                         else if (connectorSet.Size < 1)
                         {
                             continue;
@@ -83,6 +88,7 @@ namespace PipeTreeV4
                                         custom.Domain = Domain.DomainPiping;
                                         custom.DirectionType = FlowDirectionType.In;
                                         custom.NextOwnerId = connect.Owner.Id;
+                                        NextOwnerId = custom.NextOwnerId;
 
                                         Connectors.Add(custom);
                                     }
@@ -95,6 +101,7 @@ namespace PipeTreeV4
                                         custom.Domain = Domain.DomainPiping;
                                         custom.DirectionType = FlowDirectionType.Out;
                                         custom.NextOwnerId = connect.Owner.Id;
+                                        NextOwnerId = custom.NextOwnerId;
                                         Connectors.Add(custom);
                                     }
 
@@ -102,26 +109,7 @@ namespace PipeTreeV4
                             }
                         }
                     }
-                    if (Connectors.Count==1)
-                    {
-                        custom.IsSelected = true;
-                    }
-                    double maxvolume = double.MinValue;
-                    CustomConnector selectedconnector = null;
-                    foreach (CustomConnector customConnector in Connectors )
-                    {
-                        double flow = customConnector.Flow;
-                        if (flow>maxvolume)
-                        {
-                            maxvolume = flow;
-                            selectedconnector = customConnector;
-                            
-                        }
-                    }
-                    if (selectedconnector!=null)
-                    {
-                        selectedconnector.IsSelected = true;
-                    }
+                   
 
 
                 }
@@ -130,8 +118,28 @@ namespace PipeTreeV4
             {
 
             }
-            
-            
+           /* if (Connectors.Count == 1)
+            {
+                custom.IsSelected = false;
+            }*/
+            double maxvolume = double.MinValue;
+            CustomConnector selectedconnector = null;
+            foreach (CustomConnector customConnector in Connectors)
+            {
+                double flow = customConnector.Flow;
+                if (flow > maxvolume)
+                {
+                    maxvolume = flow;
+                    selectedconnector = customConnector;
+
+                }
+            }
+            if (selectedconnector != null)
+            {
+                selectedconnector.IsSelected = true;
+                NextOwnerId = selectedconnector.NextOwnerId;
+            }
+
         }
 
         
