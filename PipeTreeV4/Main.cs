@@ -106,25 +106,48 @@ namespace PipeTreeV4
                     startelements.Add(maxpipe);
                 
             }
-            List<Node> nodes = new List<Node>();
+            List<Node> mainnodes = new List<Node>(); // тут стояк 
+            List<List<Node>> branches = new List<List<Node>>();
             foreach (var startelement in startelements)
             {
                 // Get the system type from the starting element
                 var systemtype = ((doc.GetElement(startelement) as Pipe).MEPSystem as PipingSystem).SystemType;
-
+                var shortsystemname = (doc.GetElement(startelement) as Pipe).LookupParameter("Сокращение для системы").AsString();
                 // Create a Node from the starting element
-                Node node = new Node(doc, doc.GetElement(startelement), systemtype);
-                nodes.Add(node);
+                Node node = new Node(doc, doc.GetElement(startelement), systemtype,shortsystemname);
+                mainnodes.Add(node);
                 Node lastnode = null;
                 // Start a do-while loop to traverse the next elements
                 do
                 {
-                    lastnode = nodes.Last(); // Get the last added node
+                    lastnode = mainnodes.Last(); // Get the last added node
+                    
+                    if (lastnode.ConnectorList.Count>0)
+                    {
+                        int branchnumber = lastnode.ConnectorList.Count;
+                        List <Node> branch = new List<Node>();
+                        do
+                        {
+                            try
+                            {
+                                var nextElement = doc.GetElement(lastnode.NextOwnerId);
+                                Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
+                                branch.Add(newnode); // Add the new node to the nodes list
+                                nextElement = doc.GetElement(branch.Last().ElementId);
+                            }
+                            catch
+                            { break; }
+                            branches.Add(branch);
+                            branchnumber--;
+                        }
+                        while (branchnumber != 0);
+                       
+                    }
                     try
                     {
                         var nextElement = doc.GetElement(lastnode.NextOwnerId);
-                        Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType);
-                        nodes.Add(newnode); // Add the new node to the nodes list
+                        Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
+                        mainnodes.Add(newnode); // Add the new node to the nodes list
                     }
                     catch
                     {
@@ -141,7 +164,19 @@ namespace PipeTreeV4
                 while (lastnode.NextOwnerId != null ); // Continue while NextOwnerId is not null
             }
 
-            uIDocument.Selection.SetElementIds(nodes.Select(x => x.ElementId).ToList());
+            List<ElementId> totalids = new List<ElementId>();
+            foreach (var mainnode in mainnodes)
+            {
+                totalids.Add(mainnode.ElementId);
+            }
+            foreach (var branch in branches)
+            {
+                foreach (var node in branch)
+                {
+                    totalids.Add(node.ElementId);
+                }
+            }
+            uIDocument.Selection.SetElementIds(totalids);
 
             // Я докопался до сбора данных с трубы. Завтра продолжу копать по поиску остальных элементов
             // Что-то вроде рекурсии по обращению к последнему элементу в списке
