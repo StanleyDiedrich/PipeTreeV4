@@ -69,7 +69,10 @@ namespace PipeTreeV4
                         {
                             continue;
                         }
-                       
+                        else if (doc.GetElement(connect.Owner.Id).LookupParameter("Имя системы").AsString() != SystemName)
+                        {
+                            continue;
+                        }
                         else if (connectorSet.Size < 1)
                         {
                             continue;
