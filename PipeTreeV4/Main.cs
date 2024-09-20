@@ -130,7 +130,7 @@ namespace PipeTreeV4
             return branches;
         }
             
-         public List<Node>GetSecondaryBranch(Autodesk.Revit.DB.Document doc, ElementId elementId)
+         public List<List<Node>>GetSecondaryBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, List<List<Node>> mainnodes)
         {
             List<Node> branch = new List<Node>();
             PipeSystemType systemtype;
@@ -166,7 +166,7 @@ namespace PipeTreeV4
                     var nextElement = doc.GetElement(lastnode.NextOwnerId);
                     Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
                     branch.Add(newnode); // Add the new node to the nodes list
-                    
+                    mainnodes.Add(branch);
                 }
                 catch
                 {
@@ -177,12 +177,12 @@ namespace PipeTreeV4
             while (lastnode.NextOwnerId != null);
 
             // Continue while NextOwnerId is not null
-            return branch;
+            return mainnodes;
         }
     
 
 
-        public List<Node> GetBranch(Autodesk.Revit.DB.Document doc, ElementId elementId)
+        public List<List<Node>> GetBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, List<List<Node>> mainnodes)
         {
             List<Node> branch = new List<Node>();
             PipeSystemType systemtype;
@@ -218,8 +218,8 @@ namespace PipeTreeV4
                     {
                         foreach (var node in manifoldbranch)
                         {
-                            branch.AddRange(GetSecondaryBranch(doc, node.ElementId));
-                            
+                            //branch.AddRange(GetSecondaryBranch(doc, node.ElementId, mainnodes));
+                            GetSecondaryBranch(doc,node.ElementId,mainnodes);
                         }
                     }
                     break;
@@ -231,6 +231,7 @@ namespace PipeTreeV4
                     var nextElement = doc.GetElement(lastnode.NextOwnerId);
                     Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
                     branch.Add(newnode); // Add the new node to the nodes list
+                    mainnodes.Add(branch);
                 }
                 catch
                 {
@@ -241,7 +242,7 @@ namespace PipeTreeV4
             while (lastnode.NextOwnerId != null);
            
             // Continue while NextOwnerId is not null
-            return branch;
+            return mainnodes;
         }
 
         public List<List<Node>> GetBranches (Autodesk.Revit.DB.Document doc,    ElementId elementId)
@@ -309,7 +310,7 @@ namespace PipeTreeV4
                           {
                             foreach (var node in manifoldbranch)
                             {
-                                mainnodes.Add(GetBranch(doc, node.ElementId));
+                                GetBranch(doc, node.ElementId,mainnodes);
                             }
                             
                           }
