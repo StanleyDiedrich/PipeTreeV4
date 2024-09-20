@@ -25,7 +25,7 @@ namespace PipeTreeV4
     public class Main : IExternalCommand
     {
         static AddInId AddInId = new AddInId(new Guid("7DAFFD0C-8A70-4D30-A0C4-AD878D4BF2DC"));
-        public ElementId GetStartPipe(Autodesk.Revit.DB.Document document, string selectedSystemNumber )
+        public ElementId GetStartPipe(Autodesk.Revit.DB.Document document, string selectedSystemNumber)
         {
             ElementId startPipe = null;
             List<Element> pipes = new List<Element>();
@@ -109,7 +109,7 @@ namespace PipeTreeV4
 
                         else if (connect.Domain == Autodesk.Revit.DB.Domain.DomainHvac || connect.Domain == Autodesk.Revit.DB.Domain.DomainPiping)
                         {
-                            if (pipeSystemType==PipeSystemType.SupplyHydronic && nextconnector.Direction == FlowDirectionType.In)
+                            if (pipeSystemType == PipeSystemType.SupplyHydronic && nextconnector.Direction == FlowDirectionType.In)
                             {
                                 Node newnode = new Node(doc, doc.GetElement(nextconnector.Owner.Id), systemtype, shortsystemname);
                                 branch.Add(newnode);
@@ -132,8 +132,8 @@ namespace PipeTreeV4
 
             return branches;
         }
-            
-         public List<List<Node>>GetSecondaryBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, List<List<Node>> mainnodes)
+
+        public List<List<Node>> GetSecondaryBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, List<List<Node>> mainnodes)
         {
             List<Node> branch = new List<Node>();
             PipeSystemType systemtype;
@@ -161,7 +161,7 @@ namespace PipeTreeV4
             do
             {
                 lastnode = branch.Last(); // Get the last added node
-                
+
 
 
                 try
@@ -182,7 +182,7 @@ namespace PipeTreeV4
             // Continue while NextOwnerId is not null
             return mainnodes;
         }
-    
+
 
 
         public List<List<Node>> GetBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, List<List<Node>> mainnodes)
@@ -209,27 +209,27 @@ namespace PipeTreeV4
                     branch.Add(newnode);
                 }
             }
-                Node lastnode = null;
+            Node lastnode = null;
 
             do
             {
                 lastnode = branch.Last(); // Get the last added node
-                if (lastnode.Connectors.Count>=2)
+                if (lastnode.Connectors.Count >= 2)
                 {
                     var manifoldbranches = GetManifoldBranches(doc, lastnode, lastnode.PipeSystemType);
-                    foreach(var manifoldbranch in manifoldbranches)
+                    foreach (var manifoldbranch in manifoldbranches)
                     {
                         foreach (var node in manifoldbranch)
                         {
                             //branch.AddRange(GetSecondaryBranch(doc, node.ElementId, mainnodes));
-                            GetSecondaryBranch(doc,node.ElementId,mainnodes);
+                            GetSecondaryBranch(doc, node.ElementId, mainnodes);
                         }
                     }
                     break;
                 }
 
 
-                    try
+                try
                 {
                     var nextElement = doc.GetElement(lastnode.NextOwnerId);
                     Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
@@ -243,12 +243,12 @@ namespace PipeTreeV4
 
             }
             while (lastnode.NextOwnerId != null);
-           
+
             // Continue while NextOwnerId is not null
             return mainnodes;
         }
 
-        public (List<List<Node>>, List<Node>) GetBranches (Autodesk.Revit.DB.Document doc,    ElementId elementId)
+        public (List<List<Node>>, List<Node>) GetBranches(Autodesk.Revit.DB.Document doc, ElementId elementId)
         {
             List<List<Node>> mainnodes = new List<List<Node>>();
             List<Node> additionalNodes = new List<Node>();
@@ -276,86 +276,86 @@ namespace PipeTreeV4
                 }
             }
 
-            
-        
-                Node lastnode = null;
-               
-                do
+
+
+            Node lastnode = null;
+
+            do
+            {
+                lastnode = mainnode.Last(); // Get the last added node
+                PipeSystemType systemtype2;
+                string shortsystemname2;
+                if (doc.GetElement(elementId) is Pipe)
                 {
-                    lastnode = mainnode.Last(); // Get the last added node
-                    PipeSystemType systemtype2;
-                    string shortsystemname2;
-                        if (doc.GetElement(elementId) is Pipe)
-                        {
-                            systemtype2 = ((doc.GetElement(elementId) as Pipe).MEPSystem as PipingSystem).SystemType;
-                            shortsystemname = (doc.GetElement(elementId) as Pipe).LookupParameter("Сокращение для системы").AsString();
-                            Node newnode = new Node(doc, doc.GetElement(elementId), systemtype2, shortsystemname);
-                            mainnode.Add(newnode);
+                    systemtype2 = ((doc.GetElement(elementId) as Pipe).MEPSystem as PipingSystem).SystemType;
+                    shortsystemname = (doc.GetElement(elementId) as Pipe).LookupParameter("Сокращение для системы").AsString();
+                    Node newnode = new Node(doc, doc.GetElement(elementId), systemtype2, shortsystemname);
+                    mainnode.Add(newnode);
 
+                }
+                else
+                {
+                    shortsystemname = (doc.GetElement(elementId) as FamilyInstance).LookupParameter("Сокращение для системы").AsString();
+                    var connectors = ((doc.GetElement(elementId) as FamilyInstance)).MEPModel.ConnectorManager.Connectors;
+                    foreach (Connector connector in connectors)
+                    {
+                        systemtype2 = connector.PipeSystemType;
+                        Node newnode = new Node(doc, doc.GetElement(elementId), systemtype2, shortsystemname);
+                        mainnode.Add(newnode);
+
+                    }
+                }
+                if (lastnode.Connectors.Count >= 4)
+                {
+
+
+                    var manifoldbranches = GetManifoldBranches(doc, lastnode, lastnode.PipeSystemType);
+                    foreach (var manifoldbranch in manifoldbranches)
+                    {
+                        foreach (var node in manifoldbranch)
+                        {
+                            GetBranch(doc, node.ElementId, mainnodes);
                         }
-                        else
-                        {
-                            shortsystemname = (doc.GetElement(elementId) as FamilyInstance).LookupParameter("Сокращение для системы").AsString();
-                            var connectors = ((doc.GetElement(elementId) as FamilyInstance)).MEPModel.ConnectorManager.Connectors;
-                            foreach (Connector connector in connectors)
-                            {
-                                systemtype2 = connector.PipeSystemType;
-                                Node newnode = new Node(doc, doc.GetElement(elementId), systemtype2, shortsystemname);
-                                mainnode.Add(newnode);
 
-                            }
-                        }
-                    if (lastnode.Connectors.Count>=4)
-                        {
+                    }
+                    mainnodes.AddRange(manifoldbranches);
 
-                        
-                          var manifoldbranches = GetManifoldBranches(doc, lastnode, lastnode.PipeSystemType);
-                          foreach(var manifoldbranch in manifoldbranches)
-                          {
-                            foreach (var node in manifoldbranch)
-                            {
-                                GetBranch(doc, node.ElementId,mainnodes);
-                            }
-                            
-                          }
-                          mainnodes.AddRange(manifoldbranches);
 
-                           
-                         /*additionalNodes = mainnodes.SelectMany(x => x)
-                           .Select(z => z)
-                           .Where(x => x.Connectors.Count == 2 && x.Connectors.Any(y => y.IsSelected == false))
-                           
-                           .ToList();*/
+                    /*additionalNodes = mainnodes.SelectMany(x => x)
+                      .Select(z => z)
+                      .Where(x => x.Connectors.Count == 2 && x.Connectors.Any(y => y.IsSelected == false))
+
+                      .ToList();*/
                     //additionalNodes = mainnodes.SelectMany(x=>x).Where(x=>x.IsSelected==false).ToList(); 
 
-                    break;  
-                        
-                    }
-                    else
-                    {
-                        try
-                        {
-                            var nextElement = doc.GetElement(lastnode.NextOwnerId);
-                            Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
-                            mainnode.Add(newnode); // Add the new node to the nodes list
-                        }
-                        catch
-                        {
-                            break;
-                        }
-                    }
-                   
-                   
+                    break;
+
                 }
-                while (lastnode.NextOwnerId != null) ;
-                mainnodes.Add(mainnode);
-           
+                else
+                {
+                    try
+                    {
+                        var nextElement = doc.GetElement(lastnode.NextOwnerId);
+                        Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
+                        mainnode.Add(newnode); // Add the new node to the nodes list
+                    }
+                    catch
+                    {
+                        break;
+                    }
+                }
+
+
+            }
+            while (lastnode.NextOwnerId != null);
+            mainnodes.Add(mainnode);
+
 
             // Continue while NextOwnerId is not null
             return (mainnodes, additionalNodes);
         }
-        
-        
+
+
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
             UIApplication uiapp = commandData.Application;
@@ -379,7 +379,7 @@ namespace PipeTreeV4
                     }
 
                 }
-               
+
                 catch (Exception ex)
                 {
                     TaskDialog.Show("Revit", ex.ToString());
@@ -400,19 +400,19 @@ namespace PipeTreeV4
             window.ShowDialog();
 
             List<ElementId> elIds = new List<ElementId>();
-            
 
-            var systemnames = mainViewModel.SystemNumbersList.Select(x=>x).Where(x=>x.IsSelected==true);
+
+            var systemnames = mainViewModel.SystemNumbersList.Select(x => x).Where(x => x.IsSelected == true);
             //var systemelements = mainViewModel.SystemElements;
 
             List<ElementId> startelements = new List<ElementId>();
             foreach (var systemname in systemnames)
             {
                 string systemName = systemname.SystemName;
-               
-                    var maxpipe = GetStartPipe(doc, systemName);
-                    startelements.Add(maxpipe);
-                
+
+                var maxpipe = GetStartPipe(doc, systemName);
+                startelements.Add(maxpipe);
+
             }
             List<List<Node>> mainnodes = new List<List<Node>>(); // тут стояк 
             List<List<Node>> secondarynodes = new List<List<Node>>();
@@ -422,12 +422,12 @@ namespace PipeTreeV4
             List<Node> secAdditionalNodes = new List<Node>();
             PipeSystemType systemtype;
             string shortsystemname;
-           
+
             foreach (var startelement in startelements)
             {
                 (mainnodes, additionalNodes) = GetBranches(doc, startelement);
 
-               
+
             }
             foreach (var branch in mainnodes)
             {
@@ -442,26 +442,26 @@ namespace PipeTreeV4
             /*Node selectednode = mainnodes.SelectMany(x => x)
                       .Where(x => x.ElementId.IntegerValue == 1310465)
                       .FirstOrDefault();*/
-           /* foreach (var additionalNode in additionalNodes)
-            {
+            /* foreach (var additionalNode in additionalNodes)
+             {
 
-                continue;
-            }*/
-            
-
-
-
-
-                
-            
+                 continue;
+             }*/
 
 
 
 
 
-            
-           
-            
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -501,40 +501,40 @@ namespace PipeTreeV4
                 }
             }
 
-            string csvcontent=null;
-           /* foreach (var modelelements in totalids)
-            {
-                
-                    string a = $"{modelelements}";
-                    csvcontent += a+";";
-                
-            }
+            string csvcontent = null;
+            /* foreach (var modelelements in totalids)
+             {
+
+                     string a = $"{modelelements}";
+                     csvcontent += a+";";
+
+             }
 
 
-            System.Windows.Forms.SaveFileDialog saveFileDialog = new System.Windows.Forms.SaveFileDialog();
+             System.Windows.Forms.SaveFileDialog saveFileDialog = new System.Windows.Forms.SaveFileDialog();
 
 
-            saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
-            saveFileDialog.Title = "Save CSV File";
+             saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
+             saveFileDialog.Title = "Save CSV File";
 
-            if (saveFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                try
-                {
-                    using (StreamWriter writer = new StreamWriter(saveFileDialog.FileName))
-                    {
-                        writer.Write(csvcontent);
-                    }
+             if (saveFileDialog.ShowDialog() == DialogResult.OK)
+             {
+                 try
+                 {
+                     using (StreamWriter writer = new StreamWriter(saveFileDialog.FileName))
+                     {
+                         writer.Write(csvcontent);
+                     }
 
-                    Console.WriteLine("CSV file saved successfully.");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Error saving CSV file: " + ex.Message);
-                }
-            }*/
+                     Console.WriteLine("CSV file saved successfully.");
+                 }
+                 catch (Exception ex)
+                 {
+                     Console.WriteLine("Error saving CSV file: " + ex.Message);
+                 }
+             }*/
 
-                uIDocument.Selection.SetElementIds(totalids);
+            uIDocument.Selection.SetElementIds(totalids);
 
             // Я докопался до сбора данных с трубы. Завтра продолжу копать по поиску остальных элементов
             // Что-то вроде рекурсии по обращению к последнему элементу в списке

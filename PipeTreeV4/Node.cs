@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Autodesk.Revit.Creation;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.DB.Architecture;
 using Autodesk.Revit.DB.Plumbing;
 
 namespace PipeTreeV4
@@ -39,6 +41,10 @@ namespace PipeTreeV4
             ConnectorSet connectorSet = null;
             try
             {
+                if (element is Autodesk.Revit.DB.Plumbing.PipeInsulation)
+                {
+                    return;
+                }
                 if (element is Autodesk.Revit.DB.Plumbing.Pipe)
                 {
                     Autodesk.Revit.DB.Plumbing.Pipe pipe = Element as Pipe;
@@ -68,10 +74,11 @@ namespace PipeTreeV4
                             
                             string sysname = doc.GetElement(connect.Owner.Id).LookupParameter("Имя системы").AsString();
 
-                            if (doc.GetElement(connect.Owner.Id) is PipingSystem)
+                            if (doc.GetElement(connect.Owner.Id) is PipingSystem || doc.GetElement(connect.Owner.Id) is PipeInsulation)
                             {
                                 continue;
                             }
+                            
                             else if (connect.Owner.Id == ElementId)
                             {
                                 continue; // Игнорируем те же элементы
@@ -87,7 +94,7 @@ namespace PipeTreeV4
 
                                     if (pipeSystemType == PipeSystemType.SupplyHydronic)
                                     {
-                                        if (connect.Direction == FlowDirectionType.In)
+                                        if (connect.Direction == FlowDirectionType.In || connect.Direction == FlowDirectionType.Out)
                                         {
                                             custom.Flow = connect.Flow;
                                             custom.Domain = Domain.DomainPiping;
@@ -100,7 +107,7 @@ namespace PipeTreeV4
                                     }
                                     else if (pipeSystemType == PipeSystemType.ReturnHydronic)
                                     {
-                                        if (connect.Direction == FlowDirectionType.Out)
+                                        if (connect.Direction == FlowDirectionType.Out || connect.Direction == FlowDirectionType.In)
                                         {
                                             custom.Flow = connect.Flow;
                                             custom.Domain = Domain.DomainPiping;
