@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Xml.Linq;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Mechanical;
 using Autodesk.Revit.DB.Plumbing;
@@ -111,8 +112,13 @@ namespace PipeTreeV4
                                 branch.Add(newnode);
                                 branches.Add(branch);
                             }
-                            
-                           
+                            else if (pipeSystemType == PipeSystemType.ReturnHydronic && nextconnector.Direction == FlowDirectionType.Out)
+                            {
+                                Node newnode = new Node(doc, doc.GetElement(nextconnector.Owner.Id), systemtype, shortsystemname);
+                                branch.Add(newnode);
+                                branches.Add(branch);
+                            }
+
                         }
 
 
@@ -122,12 +128,60 @@ namespace PipeTreeV4
             }
 
             return branches;
-
-
         }
             
-           
-        
+         public List<Node>GetSecondaryBranch(Autodesk.Revit.DB.Document doc, ElementId elementId)
+        {
+            List<Node> branch = new List<Node>();
+            PipeSystemType systemtype;
+            string shortsystemname;
+            if (doc.GetElement(elementId) is Pipe)
+            {
+                systemtype = ((doc.GetElement(elementId) as Pipe).MEPSystem as PipingSystem).SystemType;
+                shortsystemname = (doc.GetElement(elementId) as Pipe).LookupParameter("Сокращение для системы").AsString();
+                Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname);
+                branch.Add(newnode);
+
+            }
+            else
+            {
+                shortsystemname = (doc.GetElement(elementId) as FamilyInstance).LookupParameter("Сокращение для системы").AsString();
+                var connectors = ((doc.GetElement(elementId) as FamilyInstance)).MEPModel.ConnectorManager.Connectors;
+                foreach (Connector connector in connectors)
+                {
+                    systemtype = connector.PipeSystemType;
+                    Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname);
+                    branch.Add(newnode);
+                }
+            }
+            Node lastnode = null;
+            do
+            {
+                lastnode = branch.Last(); // Get the last added node
+                
+
+
+                try
+                {
+                    var nextElement = doc.GetElement(lastnode.NextOwnerId);
+                    Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
+                    branch.Add(newnode); // Add the new node to the nodes list
+                    
+                }
+                catch
+                {
+                    break;
+                }
+
+            }
+            while (lastnode.NextOwnerId != null);
+
+            // Continue while NextOwnerId is not null
+            return branch;
+        }
+    
+
+
         public List<Node> GetBranch(Autodesk.Revit.DB.Document doc, ElementId elementId)
         {
             List<Node> branch = new List<Node>();
@@ -157,10 +211,22 @@ namespace PipeTreeV4
             do
             {
                 lastnode = branch.Last(); // Get the last added node
+                if (lastnode.Connectors.Count>=2)
+                {
+                    var manifoldbranches = GetManifoldBranches(doc, lastnode, lastnode.PipeSystemType);
+                    foreach(var manifoldbranch in manifoldbranches)
+                    {
+                        foreach (var node in manifoldbranch)
+                        {
+                            branch.AddRange(GetSecondaryBranch(doc, node.ElementId));
+                            
+                        }
+                    }
+                    break;
+                }
 
-               
 
-                try
+                    try
                 {
                     var nextElement = doc.GetElement(lastnode.NextOwnerId);
                     Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
@@ -239,6 +305,14 @@ namespace PipeTreeV4
 
                         
                           var manifoldbranches = GetManifoldBranches(doc, lastnode, lastnode.PipeSystemType);
+                          foreach(var manifoldbranch in manifoldbranches)
+                          {
+                            foreach (var node in manifoldbranch)
+                            {
+                                mainnodes.Add(GetBranch(doc, node.ElementId));
+                            }
+                            
+                          }
                           mainnodes.AddRange(manifoldbranches);
                          break;  
                         
