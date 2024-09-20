@@ -16,6 +16,7 @@ namespace PipeTreeV4
         public Domain  Domain { get; set; }
         public FlowDirectionType DirectionType { get; set; }
         public ElementId NextOwnerId { get; set; }
+        public ElementId Neighbourg { get; set; }
         public double  Flow { get; set; }
         public bool IsSelected { get; set; }
         List<CustomConnector> Connectors { get; set; } = new List<CustomConnector>();

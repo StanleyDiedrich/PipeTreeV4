@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.NetworkInformation;
@@ -8,11 +9,13 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Forms;
 using System.Xml.Linq;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Mechanical;
 using Autodesk.Revit.DB.Plumbing;
 using Autodesk.Revit.UI;
+using Microsoft.Win32;
 using PipeTreeV4;
 
 namespace PipeTreeV4
@@ -245,10 +248,10 @@ namespace PipeTreeV4
             return mainnodes;
         }
 
-        public (List<List<Node>>, List<CustomConnector>) GetBranches (Autodesk.Revit.DB.Document doc,    ElementId elementId)
+        public (List<List<Node>>, List<Node>) GetBranches (Autodesk.Revit.DB.Document doc,    ElementId elementId)
         {
             List<List<Node>> mainnodes = new List<List<Node>>();
-            List<CustomConnector> additionalNodes = new List<CustomConnector>();
+            List<Node> additionalNodes = new List<Node>();
             List<Node> mainnode = new List<Node>();
             PipeSystemType systemtype;
             string shortsystemname;
@@ -316,7 +319,14 @@ namespace PipeTreeV4
                             
                           }
                           mainnodes.AddRange(manifoldbranches);
-                          additionalNodes = mainnodes.SelectMany(innerList => innerList    .SelectMany(node => node.Connectors        .Where(connector => connector.IsSelected==false))).ToList(); 
+
+                           
+                         /*additionalNodes = mainnodes.SelectMany(x => x)
+                           .Select(z => z)
+                           .Where(x => x.Connectors.Count == 2 && x.Connectors.Any(y => y.IsSelected == false))
+                           
+                           .ToList();*/
+                    //additionalNodes = mainnodes.SelectMany(x=>x).Where(x=>x.IsSelected==false).ToList(); 
 
                     break;  
                         
@@ -339,8 +349,8 @@ namespace PipeTreeV4
                 }
                 while (lastnode.NextOwnerId != null) ;
                 mainnodes.Add(mainnode);
-                
-               
+           
+
             // Continue while NextOwnerId is not null
             return (mainnodes, additionalNodes);
         }
@@ -405,8 +415,11 @@ namespace PipeTreeV4
                 
             }
             List<List<Node>> mainnodes = new List<List<Node>>(); // тут стояк 
+            List<List<Node>> secondarynodes = new List<List<Node>>();
+            List<List<Node>> secondarySupernodes = new List<List<Node>>();
             List<List<Node>> branches = new List<List<Node>>();
-            List<CustomConnector> additionalNodes = new List<CustomConnector>();
+            List<Node> additionalNodes = new List<Node>();
+            List<Node> secAdditionalNodes = new List<Node>();
             PipeSystemType systemtype;
             string shortsystemname;
            
@@ -416,11 +429,24 @@ namespace PipeTreeV4
 
                
             }
-
-            foreach (var additionalNode in additionalNodes)
+            foreach (var branch in mainnodes)
             {
-                continue;
+                foreach (var node in branch)
+                {
+                    if (node.Connectors.Count == 2 && node.Connectors.Any(x => x.IsSelected == false) && node.Element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_PipeFitting)
+                    {
+                        additionalNodes.Add(node);
+                    }
+                }
             }
+            /*Node selectednode = mainnodes.SelectMany(x => x)
+                      .Where(x => x.ElementId.IntegerValue == 1310465)
+                      .FirstOrDefault();*/
+           /* foreach (var additionalNode in additionalNodes)
+            {
+
+                continue;
+            }*/
             
 
 
@@ -443,22 +469,72 @@ namespace PipeTreeV4
 
 
             List<ElementId> totalids = new List<ElementId>();
-            foreach (var mainnode in mainnodes)
+
+            var startElements = additionalNodes
+.SelectMany(node => node.Connectors)        // Выбираем все соединители из узлов
+.Where(connector => !connector.IsSelected)  // Фильтруем только те, которые не выбраны
+.ToList();                                  // Превращаем в список
+
+            foreach (var startelement in startElements)
             {
-                foreach (var node in mainnode)
-                {
-                    totalids.Add(node.ElementId);
-                }
-                
+                var nextstartelement = startelement.NextOwnerId;
+                (secondarynodes, secAdditionalNodes) = GetBranches(doc, nextstartelement);
+                secondarySupernodes.AddRange(secondarynodes);
             }
-           /* foreach (var branch in newbranches)
+
+
+
+
+
+
+            /* foreach (var node in additionalNodes)
+             {
+                 totalids.Add(node.ElementId);
+             }*/
+
+            mainnodes.AddRange(secondarySupernodes);
+            foreach (var branch in mainnodes)
             {
                 foreach (var node in branch)
                 {
                     totalids.Add(node.ElementId);
                 }
+            }
+
+            string csvcontent=null;
+           /* foreach (var modelelements in totalids)
+            {
+                
+                    string a = $"{modelelements}";
+                    csvcontent += a+";";
+                
+            }
+
+
+            System.Windows.Forms.SaveFileDialog saveFileDialog = new System.Windows.Forms.SaveFileDialog();
+
+
+            saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
+            saveFileDialog.Title = "Save CSV File";
+
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    using (StreamWriter writer = new StreamWriter(saveFileDialog.FileName))
+                    {
+                        writer.Write(csvcontent);
+                    }
+
+                    Console.WriteLine("CSV file saved successfully.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error saving CSV file: " + ex.Message);
+                }
             }*/
-            uIDocument.Selection.SetElementIds(totalids);
+
+                uIDocument.Selection.SetElementIds(totalids);
 
             // Я докопался до сбора данных с трубы. Завтра продолжу копать по поиску остальных элементов
             // Что-то вроде рекурсии по обращению к последнему элементу в списке

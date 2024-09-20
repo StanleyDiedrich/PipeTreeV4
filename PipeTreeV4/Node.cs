@@ -22,8 +22,9 @@ namespace PipeTreeV4
         public List<CustomConnector> ConnectorList { get; set; } = new List<CustomConnector>();
 
         public ElementId NextOwnerId { get; set; }
+        public ElementId Neighbourg { get; set; }
         public bool IsManifold { get; set; }
-        
+        public bool IsSelected { get; set; }
 
         public Node (Autodesk.Revit.DB.Document doc, Element element, PipeSystemType pipeSystemType, string shortsystemName)
         {
@@ -226,6 +227,8 @@ namespace PipeTreeV4
             {
                 selectedconnector.IsSelected = true;
                 NextOwnerId = selectedconnector.NextOwnerId;
+
+                //NextOwnerId = selectedconnector.Neighbourg;
             }
 
         }
