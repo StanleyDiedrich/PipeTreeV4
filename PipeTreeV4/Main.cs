@@ -245,9 +245,10 @@ namespace PipeTreeV4
             return mainnodes;
         }
 
-        public List<List<Node>> GetBranches (Autodesk.Revit.DB.Document doc,    ElementId elementId)
+        public (List<List<Node>>, List<CustomConnector>) GetBranches (Autodesk.Revit.DB.Document doc,    ElementId elementId)
         {
             List<List<Node>> mainnodes = new List<List<Node>>();
+            List<CustomConnector> additionalNodes = new List<CustomConnector>();
             List<Node> mainnode = new List<Node>();
             PipeSystemType systemtype;
             string shortsystemname;
@@ -315,7 +316,9 @@ namespace PipeTreeV4
                             
                           }
                           mainnodes.AddRange(manifoldbranches);
-                         break;  
+                          additionalNodes = mainnodes.SelectMany(innerList => innerList    .SelectMany(node => node.Connectors        .Where(connector => connector.IsSelected==false))).ToList(); 
+
+                    break;  
                         
                     }
                     else
@@ -336,8 +339,10 @@ namespace PipeTreeV4
                 }
                 while (lastnode.NextOwnerId != null) ;
                 mainnodes.Add(mainnode);
+                
+               
             // Continue while NextOwnerId is not null
-            return mainnodes;
+            return (mainnodes, additionalNodes);
         }
         
         
@@ -401,17 +406,21 @@ namespace PipeTreeV4
             }
             List<List<Node>> mainnodes = new List<List<Node>>(); // тут стояк 
             List<List<Node>> branches = new List<List<Node>>();
+            List<CustomConnector> additionalNodes = new List<CustomConnector>();
             PipeSystemType systemtype;
             string shortsystemname;
            
             foreach (var startelement in startelements)
             {
-                mainnodes = GetBranches(doc, startelement);
+                (mainnodes, additionalNodes) = GetBranches(doc, startelement);
 
                
             }
 
-
+            foreach (var additionalNode in additionalNodes)
+            {
+                continue;
+            }
             
 
 
