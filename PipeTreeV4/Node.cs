@@ -19,9 +19,10 @@ namespace PipeTreeV4
         public PipeSystemType PipeSystemType { get; set; }
 
         public List<CustomConnector> Connectors { get; set; } = new List<CustomConnector>();
-        public List<List<CustomConnector>> ConnectorList { get; set; } = new List<List<CustomConnector>>();
+        public List<CustomConnector> ConnectorList { get; set; } = new List<CustomConnector>();
 
         public ElementId NextOwnerId { get; set; }
+        public bool IsManifold { get; set; }
         
 
         public Node (Autodesk.Revit.DB.Document doc, Element element, PipeSystemType pipeSystemType, string shortsystemName)
@@ -50,15 +51,20 @@ namespace PipeTreeV4
                     MEPModel mepModel = familyInstance.MEPModel;
                     connectorSet = mepModel.ConnectorManager.Connectors;
                 }
+                List<List<CustomConnector>> branches = new List<List<CustomConnector>>();
                 if (connectorSet.Size>=4)
                 {
+                    IsManifold = true;
+                    
                     List<CustomConnector> customConnectors = new List<CustomConnector>();
                     foreach (Connector connector in connectorSet)
                     {
+                       
                         CustomConnector custom = new CustomConnector(doc, ElementId, PipeSystemType);
                         ConnectorSet nextconnectors = connector.AllRefs;
                         foreach (Connector connect in nextconnectors)
                         {
+                            
                             string sysname = doc.GetElement(connect.Owner.Id).LookupParameter("Имя системы").AsString();
 
                             if (doc.GetElement(connect.Owner.Id) is PipingSystem)
@@ -115,10 +121,12 @@ namespace PipeTreeV4
 
                                 
                             }*/
+                            
                         }
-                        ConnectorList.Add(customConnectors);
+                       
+
                     }
-                   
+                    Connectors=customConnectors;
                 }
                 else
                 {
