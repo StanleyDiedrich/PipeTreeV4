@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Configuration;
 using System.Net.NetworkInformation;
 using System.Text;
 using System.Threading.Tasks;
@@ -25,6 +26,17 @@ namespace PipeTreeV4
     public class Main : IExternalCommand
     {
         static AddInId AddInId = new AddInId(new Guid("7DAFFD0C-8A70-4D30-A0C4-AD878D4BF2DC"));
+
+
+        public List<List<Node>> RemoveDuplicatesByElementId(List<List<Node>> nodeLists)
+        {
+            return nodeLists
+         .Select(nodeList => nodeList
+             .GroupBy(n => n.ElementId) // Группируем по ElementId
+             .Select(g => g.First()) // Берём первый элемент из каждой группы
+             .ToList()) // Преобразуем в список
+         .ToList(); // Преобразуем весь результат в список
+        }
         public ElementId GetStartPipe(Autodesk.Revit.DB.Document document, string selectedSystemNumber)
         {
             ElementId startPipe = null;
@@ -420,6 +432,7 @@ namespace PipeTreeV4
             List<List<Node>> branches = new List<List<Node>>();
             List<Node> additionalNodes = new List<Node>();
             List<Node> secAdditionalNodes = new List<Node>();
+            List<ModelElement> modelElements = new List<ModelElement>();
             PipeSystemType systemtype;
             string shortsystemname;
 
@@ -428,6 +441,16 @@ namespace PipeTreeV4
                 (mainnodes, additionalNodes) = GetBranches(doc, startelement);
 
 
+            }
+
+            //mainnodes = RemoveDuplicatesByElementId(mainnodes);
+
+            foreach (var mainnode in mainnodes)
+            {
+                foreach (var node in mainnode)
+                {
+                    node.IsOCK = true;
+                }
             }
             foreach (var branch in mainnodes)
             {
@@ -475,16 +498,42 @@ namespace PipeTreeV4
 .Where(connector => !connector.IsSelected)  // Фильтруем только те, которые не выбраны
 .ToList();                                  // Превращаем в список
 
-            foreach (var startelement in startElements)
+            var totalIds = new HashSet<int>();
+
+            /*foreach (var startelement in startElements)
             {
                 var nextstartelement = startelement.NextOwnerId;
                 (secondarynodes, secAdditionalNodes) = GetBranches(doc, nextstartelement);
                 secondarySupernodes.AddRange(secondarynodes);
+            }*/
+
+
+
+            foreach (var startelement in startElements)
+            {
+                var nextStartelement = startelement.NextOwnerId;
+                (secondarynodes, secAdditionalNodes) = GetBranches(doc, nextStartelement);
+
+                foreach (var secondarynode in secondarynodes)
+                {
+                    List<Node> branch = new List<Node>();
+                    foreach (var node in secondarynode)
+                    {
+                        if (totalIds.Add(node.ElementId.IntegerValue))
+                        {
+                            branch.Add(node);
+                        }
+                    }
+                    // Добавляем только уникальные элементы
+                    if (branch.Count!=0)
+                    {
+                        secondarySupernodes.Add(branch);
+                    }
+                    else
+                    { continue; }
+                    
+                }
             }
-
-
-
-
 
 
             /* foreach (var node in additionalNodes)
@@ -493,48 +542,73 @@ namespace PipeTreeV4
              }*/
 
             mainnodes.AddRange(secondarySupernodes);
-            foreach (var branch in mainnodes)
+            /* foreach (var branch in mainnodes)
+             {
+                 foreach (var node in branch)
+                 {
+                     totalids.Add(node.ElementId);
+                 }
+             }*/
+            List<ElementId> checkednodes = new List<ElementId>();
+
+
+
+            string csvcontent = null;
+            int branchcounter = 0;
+            foreach (var mainnode in mainnodes)
             {
-                foreach (var node in branch)
+                int counter = 0;
+                foreach (var node in mainnode)
                 {
-                    totalids.Add(node.ElementId);
+                    if (checkednodes.Contains(node.ElementId))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        ModelElement modelelement = new ModelElement(doc, node, branchcounter, counter);
+                        checkednodes.Add(node.ElementId);
+                        string a = $"{modelelement.ModelElementId};{modelelement.ModelTrack};{modelelement.ModelLvl};{modelelement.ModelBranchNumber};{modelelement.ModelTrackNumber};{modelelement.ModelName};{modelelement.ModelDiameter};{modelelement.ModelLength};{modelelement.ModelVolume};{modelelement.Type.ToString()};{modelelement.ModelTrack}-{modelelement.ModelLvl}-{modelelement.ModelBranchNumber}-{modelelement.ModelTrackNumber}\n";
+                        csvcontent += a + ";";
+                        counter++;
+                    }
+                   
+                    /*if (modelElement.Diameter!=modelElements.Last().Diameter || modelElement.Volume!=modelElements.Last().Volume)
+                    {
+                        counter++;
+                    }*/
+                    
+                }
+                branchcounter++;
+            }
+
+            /*string csvcontent = null;
+            foreach (var modelelement in modelElements)
+            {
+                string a = $"{modelelement.ModelElementId};{modelelement.ModelTrack};{modelelement.ModelLvl};{modelelement.ModelBranchNumber};{modelelement.ModelTrackNumber};{modelelement.ModelName};{modelelement.ModelDiameter};{modelelement.ModelLength};{modelelement.ModelVolume};{modelelement.Type.ToString()};{modelelement.ModelTrack}-{modelelement.ModelLvl}-{modelelement.ModelBranchNumber}-{modelelement.ModelTrackNumber}\n";
+                csvcontent += a + ";";
+            }*/
+            System.Windows.Forms.SaveFileDialog saveFileDialog = new System.Windows.Forms.SaveFileDialog();
+            saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
+            saveFileDialog.Title = "Save CSV File";
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    using (StreamWriter writer = new StreamWriter(saveFileDialog.FileName))
+                    {
+                        writer.Write(csvcontent);
+                    }
+
+                    Console.WriteLine("CSV file saved successfully.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error saving CSV file: " + ex.Message);
                 }
             }
 
-            string csvcontent = null;
-            /* foreach (var modelelements in totalids)
-             {
-
-                     string a = $"{modelelements}";
-                     csvcontent += a+";";
-
-             }
-
-
-             System.Windows.Forms.SaveFileDialog saveFileDialog = new System.Windows.Forms.SaveFileDialog();
-
-
-             saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
-             saveFileDialog.Title = "Save CSV File";
-
-             if (saveFileDialog.ShowDialog() == DialogResult.OK)
-             {
-                 try
-                 {
-                     using (StreamWriter writer = new StreamWriter(saveFileDialog.FileName))
-                     {
-                         writer.Write(csvcontent);
-                     }
-
-                     Console.WriteLine("CSV file saved successfully.");
-                 }
-                 catch (Exception ex)
-                 {
-                     Console.WriteLine("Error saving CSV file: " + ex.Message);
-                 }
-             }*/
-
-            uIDocument.Selection.SetElementIds(totalids);
+            //uIDocument.Selection.SetElementIds(totalids);
 
             // Я докопался до сбора данных с трубы. Завтра продолжу копать по поиску остальных элементов
             // Что-то вроде рекурсии по обращению к последнему элементу в списке

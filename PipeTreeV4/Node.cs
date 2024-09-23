@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using Autodesk.Revit.Creation;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Architecture;
+using Autodesk.Revit.DB.Mechanical;
 using Autodesk.Revit.DB.Plumbing;
 
 namespace PipeTreeV4
@@ -26,7 +27,11 @@ namespace PipeTreeV4
         public ElementId NextOwnerId { get; set; }
         public ElementId Neighbourg { get; set; }
         public bool IsManifold { get; set; }
+        public bool IsTee { get; set; }
+        public bool IsElbow { get; set; }
         public bool IsSelected { get; set; }
+
+        public bool IsOCK { get; set; }
 
         public Node (Autodesk.Revit.DB.Document doc, Element element, PipeSystemType pipeSystemType, string shortsystemName)
         {
@@ -57,6 +62,30 @@ namespace PipeTreeV4
                     SystemName = familyInstance.LookupParameter("Имя системы").AsString();
                     MEPModel mepModel = familyInstance.MEPModel;
                     connectorSet = mepModel.ConnectorManager.Connectors;
+                    try
+                    {
+                        if ((mepModel as MechanicalFitting)==null)
+                        {
+
+                        }
+                        else
+                        {
+                            if ((mepModel as MechanicalFitting).PartType == PartType.Elbow && (mepModel as MechanicalFitting) != null)
+                            {
+                                IsElbow = true;
+                            }
+                            else if ((mepModel as MechanicalFitting).PartType == PartType.Tee && (mepModel as MechanicalFitting) != null)
+                            {
+                                IsTee = true;
+                            }
+                        }
+                        
+                    }
+                    catch
+                    {
+                        
+                    }
+                   
                 }
                 List<List<CustomConnector>> branches = new List<List<CustomConnector>>();
                 if (connectorSet.Size>=4)
@@ -100,6 +129,7 @@ namespace PipeTreeV4
                                             custom.Domain = Domain.DomainPiping;
                                             custom.DirectionType = FlowDirectionType.In;
                                             custom.NextOwnerId = connect.Owner.Id;
+                                            custom.Diameter = connect.Radius * 2;
                                             NextOwnerId = custom.NextOwnerId;
 
                                             customConnectors.Add(custom);
@@ -114,21 +144,14 @@ namespace PipeTreeV4
                                             custom.DirectionType = FlowDirectionType.Out;
                                             custom.NextOwnerId = connect.Owner.Id;
                                             NextOwnerId = custom.NextOwnerId;
+                                            custom.Diameter = connect.Radius * 2;
                                             customConnectors.Add(custom);
                                         }
 
                                     }
                                 }
                             }
-                            /*else if (connectorSet.Size < 1)
-                            {
-
-                            }*/
-                            /*else
-                            {
-
-                                
-                            }*/
+                            
                             
                         }
                        

@@ -19,6 +19,8 @@ namespace PipeTreeV4
         public ElementId Neighbourg { get; set; }
         public double  Flow { get; set; }
         public bool IsSelected { get; set; }
+
+        public double Diameter { get; set; }
         List<CustomConnector> Connectors { get; set; } = new List<CustomConnector>();
 
         public CustomConnector(Autodesk.Revit.DB.Document document,ElementId elementId, PipeSystemType pipeSystemType)
