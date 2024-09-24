@@ -553,7 +553,7 @@ namespace PipeTreeV4
 
 
 
-            string csvcontent = null;
+            string csvcontent = "";
             int branchcounter = 0;
             foreach (var mainnode in mainnodes)
             {
@@ -569,7 +569,7 @@ namespace PipeTreeV4
                         ModelElement modelelement = new ModelElement(doc, node, branchcounter, counter);
                         checkednodes.Add(node.ElementId);
                         string a = $"{modelelement.ModelElementId};{modelelement.ModelTrack};{modelelement.ModelLvl};{modelelement.ModelBranchNumber};{modelelement.ModelTrackNumber};{modelelement.ModelName};{modelelement.ModelDiameter};{modelelement.ModelLength};{modelelement.ModelVolume};{modelelement.Type.ToString()};{modelelement.ModelTrack}-{modelelement.ModelLvl}-{modelelement.ModelBranchNumber}-{modelelement.ModelTrackNumber}\n";
-                        csvcontent += a + ";";
+                        csvcontent += a;
                         counter++;
                     }
                    
