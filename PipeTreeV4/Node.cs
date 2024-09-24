@@ -2,10 +2,13 @@
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
+using System.Net;
 using System.Text;
 using System.Threading.Tasks;
 using Autodesk.Revit.Creation;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.DB.Architecture;
+using Autodesk.Revit.DB.Mechanical;
 using Autodesk.Revit.DB.Plumbing;
 
 namespace PipeTreeV4
@@ -19,10 +22,16 @@ namespace PipeTreeV4
         public PipeSystemType PipeSystemType { get; set; }
 
         public List<CustomConnector> Connectors { get; set; } = new List<CustomConnector>();
-        public List<List<CustomConnector>> ConnectorList { get; set; } = new List<List<CustomConnector>>();
+        public List<CustomConnector> ConnectorList { get; set; } = new List<CustomConnector>();
 
         public ElementId NextOwnerId { get; set; }
-        
+        public ElementId Neighbourg { get; set; }
+        public bool IsManifold { get; set; }
+        public bool IsTee { get; set; }
+        public bool IsElbow { get; set; }
+        public bool IsSelected { get; set; }
+
+        public bool IsOCK { get; set; }
 
         public Node (Autodesk.Revit.DB.Document doc, Element element, PipeSystemType pipeSystemType, string shortsystemName)
         {
@@ -37,6 +46,10 @@ namespace PipeTreeV4
             ConnectorSet connectorSet = null;
             try
             {
+                if (element is Autodesk.Revit.DB.Plumbing.PipeInsulation)
+                {
+                    return;
+                }
                 if (element is Autodesk.Revit.DB.Plumbing.Pipe)
                 {
                     Autodesk.Revit.DB.Plumbing.Pipe pipe = Element as Pipe;
@@ -49,22 +62,52 @@ namespace PipeTreeV4
                     SystemName = familyInstance.LookupParameter("Имя системы").AsString();
                     MEPModel mepModel = familyInstance.MEPModel;
                     connectorSet = mepModel.ConnectorManager.Connectors;
+                    try
+                    {
+                        if ((mepModel as MechanicalFitting)==null)
+                        {
+
+                        }
+                        else
+                        {
+                            if ((mepModel as MechanicalFitting).PartType == PartType.Elbow && (mepModel as MechanicalFitting) != null)
+                            {
+                                IsElbow = true;
+                            }
+                            else if ((mepModel as MechanicalFitting).PartType == PartType.Tee && (mepModel as MechanicalFitting) != null)
+                            {
+                                IsTee = true;
+                            }
+                        }
+                        
+                    }
+                    catch
+                    {
+                        
+                    }
+                   
                 }
+                List<List<CustomConnector>> branches = new List<List<CustomConnector>>();
                 if (connectorSet.Size>=4)
                 {
+                    IsManifold = true;
+                    
                     List<CustomConnector> customConnectors = new List<CustomConnector>();
                     foreach (Connector connector in connectorSet)
                     {
+                       
                         CustomConnector custom = new CustomConnector(doc, ElementId, PipeSystemType);
                         ConnectorSet nextconnectors = connector.AllRefs;
                         foreach (Connector connect in nextconnectors)
                         {
+                            
                             string sysname = doc.GetElement(connect.Owner.Id).LookupParameter("Имя системы").AsString();
 
-                            if (doc.GetElement(connect.Owner.Id) is PipingSystem)
+                            if (doc.GetElement(connect.Owner.Id) is PipingSystem || doc.GetElement(connect.Owner.Id) is PipeInsulation)
                             {
                                 continue;
                             }
+                            
                             else if (connect.Owner.Id == ElementId)
                             {
                                 continue; // Игнорируем те же элементы
@@ -80,12 +123,13 @@ namespace PipeTreeV4
 
                                     if (pipeSystemType == PipeSystemType.SupplyHydronic)
                                     {
-                                        if (connect.Direction == FlowDirectionType.In)
+                                        if (connect.Direction == FlowDirectionType.In || connect.Direction == FlowDirectionType.Out)
                                         {
                                             custom.Flow = connect.Flow;
                                             custom.Domain = Domain.DomainPiping;
                                             custom.DirectionType = FlowDirectionType.In;
                                             custom.NextOwnerId = connect.Owner.Id;
+                                            custom.Diameter = connect.Radius * 2;
                                             NextOwnerId = custom.NextOwnerId;
 
                                             customConnectors.Add(custom);
@@ -93,32 +137,27 @@ namespace PipeTreeV4
                                     }
                                     else if (pipeSystemType == PipeSystemType.ReturnHydronic)
                                     {
-                                        if (connect.Direction == FlowDirectionType.Out)
+                                        if (connect.Direction == FlowDirectionType.Out || connect.Direction == FlowDirectionType.In)
                                         {
                                             custom.Flow = connect.Flow;
                                             custom.Domain = Domain.DomainPiping;
                                             custom.DirectionType = FlowDirectionType.Out;
                                             custom.NextOwnerId = connect.Owner.Id;
                                             NextOwnerId = custom.NextOwnerId;
+                                            custom.Diameter = connect.Radius * 2;
                                             customConnectors.Add(custom);
                                         }
 
                                     }
                                 }
                             }
-                            /*else if (connectorSet.Size < 1)
-                            {
-
-                            }*/
-                            /*else
-                            {
-
-                                
-                            }*/
+                            
+                            
                         }
-                        ConnectorList.Add(customConnectors);
+                       
+
                     }
-                   
+                    Connectors=customConnectors;
                 }
                 else
                 {
@@ -218,6 +257,8 @@ namespace PipeTreeV4
             {
                 selectedconnector.IsSelected = true;
                 NextOwnerId = selectedconnector.NextOwnerId;
+
+                //NextOwnerId = selectedconnector.Neighbourg;
             }
 
         }
