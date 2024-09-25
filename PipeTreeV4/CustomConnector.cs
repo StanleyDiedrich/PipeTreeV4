@@ -21,6 +21,8 @@ namespace PipeTreeV4
         public bool IsSelected { get; set; }
 
         public double Diameter { get; set; }
+
+        public double PressureDrop { get; set; }
         List<CustomConnector> Connectors { get; set; } = new List<CustomConnector>();
 
         public CustomConnector(Autodesk.Revit.DB.Document document,ElementId elementId, PipeSystemType pipeSystemType)

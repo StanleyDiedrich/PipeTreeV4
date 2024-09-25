@@ -130,6 +130,7 @@ namespace PipeTreeV4
                                             custom.DirectionType = FlowDirectionType.In;
                                             custom.NextOwnerId = connect.Owner.Id;
                                             custom.Diameter = connect.Radius * 2;
+                                            custom.PressureDrop = connect.PressureDrop; // Вот это добавлено в версии 4.1
                                             NextOwnerId = custom.NextOwnerId;
 
                                             customConnectors.Add(custom);
@@ -145,6 +146,7 @@ namespace PipeTreeV4
                                             custom.NextOwnerId = connect.Owner.Id;
                                             NextOwnerId = custom.NextOwnerId;
                                             custom.Diameter = connect.Radius * 2;
+                                            custom.PressureDrop = connect.PressureDrop; // Вот это добавлено в версии 4.1
                                             customConnectors.Add(custom);
                                         }
 
@@ -237,13 +239,40 @@ namespace PipeTreeV4
             {
 
             }
-           /* if (Connectors.Count == 1)
-            {
-                custom.IsSelected = false;
-            }*/
+            /* if (Connectors.Count == 1)
+             {
+                 custom.IsSelected = false;
+             }*/
             double maxvolume = double.MinValue;
+            double maxpressure = double.MinValue;
             CustomConnector selectedconnector = null;
             foreach (CustomConnector customConnector in Connectors)
+            {
+                double pressure = customConnector.PressureDrop;
+                double flow = customConnector.Flow;
+                if (pressure==0)
+                {
+                    if (flow > maxvolume)
+                    {
+                        maxvolume = flow;
+                        selectedconnector = customConnector;
+
+                    }
+                }
+                else
+                {
+                    if (pressure > maxpressure)
+                    {
+                        maxpressure = pressure;
+                        selectedconnector = customConnector;
+
+                    }
+                }
+                
+            }
+
+
+            /*foreach (CustomConnector customConnector in Connectors)
             {
                 double flow = customConnector.Flow;
                 if (flow > maxvolume)
@@ -252,7 +281,7 @@ namespace PipeTreeV4
                     selectedconnector = customConnector;
 
                 }
-            }
+            }*/
             if (selectedconnector != null)
             {
                 selectedconnector.IsSelected = true;

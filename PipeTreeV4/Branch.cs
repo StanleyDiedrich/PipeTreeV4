@@ -13,7 +13,7 @@ namespace PipeTreeV4
         private static int _counter = 0;
         public int Number { get; set; }
         public double DPressure { get; set; }
-        List<Node> Nodes { get; set; }
+         public List<Node> Nodes { get; set; }
 
         public Branch ()
         {
@@ -32,9 +32,9 @@ namespace PipeTreeV4
             return Nodes;
         }
 
-        public double GetPressure() // Эту шляпу определили с целью поиска максимального давления на ответвлении
+        public double GetPressure() // Эту шляпу определили с целью поиска общей потери давления на ответвлении
         {
-            double pressure= double.MinValue;
+            double pressure = 0;
 
             foreach (var node in Nodes)
             {
@@ -42,10 +42,7 @@ namespace PipeTreeV4
                 if (element is Pipe)
                 {
                     double dpressure = (element as Pipe).LookupParameter("Падение давления").AsDouble();
-                    if (pressure<dpressure)
-                    {
-                        pressure = dpressure;
-                    }
+                    pressure += dpressure;
                 }
             }
             DPressure = pressure;
