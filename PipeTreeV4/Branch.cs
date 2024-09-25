@@ -41,8 +41,29 @@ namespace PipeTreeV4
                 Element element = node.Element;
                 if (element is Pipe)
                 {
-                    double dpressure = (element as Pipe).LookupParameter("Падение давления").AsDouble();
-                    pressure += dpressure;
+                    try
+                    {
+                        double dpressure = (element as Pipe).LookupParameter("Падение давления").AsDouble();
+                        pressure += dpressure;
+                    }
+                    catch
+                    {
+                        ConnectorSet connectors = (element as Pipe).ConnectorManager.Connectors;
+                        foreach (Connector connector in connectors)
+                        {
+                            if (connector.PipeSystemType == PipeSystemType.SupplyHydronic && connector.Direction==FlowDirectionType.In)
+                            {
+                                double dpressure = connector.PressureDrop;
+                                pressure += dpressure;
+                            }
+                            else if (connector.PipeSystemType == PipeSystemType.ReturnHydronic && connector.Direction == FlowDirectionType.Out)
+                            {
+                                double dpressure = connector.PressureDrop;
+                                pressure += dpressure;
+                            }
+                        }
+                    }
+                   
                 }
             }
             DPressure = pressure;

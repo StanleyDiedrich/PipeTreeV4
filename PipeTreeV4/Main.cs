@@ -221,7 +221,7 @@ namespace PipeTreeV4
             return branches;
         }*/
 
-        public List<Branch> GetSecondaryBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, List<Branch> mainnodes)
+        public Branch GetNewSecondaryBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnodes) // пришли с 377 строки
         {
             Branch branch = new Branch();
             PipeSystemType systemtype;
@@ -252,12 +252,13 @@ namespace PipeTreeV4
 
 
 
+
                 try
                 {
                     var nextElement = doc.GetElement(lastnode.NextOwnerId);
                     Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
                     branch.Add(newnode); // Add the new node to the nodes list
-                    mainnodes.Add(branch);
+                   
                 }
                 catch
                 {
@@ -267,11 +268,12 @@ namespace PipeTreeV4
             }
             while (lastnode.NextOwnerId != null);
 
+            
             // Continue while NextOwnerId is not null
-            return mainnodes;
+            return branch;
         }
 
-        public Branch GetNewManifoldBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnodes)
+        public Branch GetNewManifoldBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnodes )
         {
             Branch branch = new Branch();
             PipeSystemType systemtype;
@@ -305,11 +307,12 @@ namespace PipeTreeV4
                     var manifoldbranches = GetNewManifoldBranches(doc, lastnode, lastnode.PipeSystemType);
                     foreach (var manifoldbranch in manifoldbranches)
                     {
+                        //Branch secondarybranch = new Branch();
                         foreach (var node in manifoldbranch.Nodes)
                         {
                             //branch.AddRange(GetSecondaryBranch(doc, node.ElementId, mainnodes));
                             //ВОТ ТУТ НАДО ИСПРАВЛЯТЬ
-                            //GetSecondaryBranch(doc, node.ElementId, mainnodes);
+                            //GetNewSecondaryBranch(doc, node.ElementId, secondarybranch);
                         }
                     }
                     break;
@@ -335,7 +338,7 @@ namespace PipeTreeV4
             return mainnodes;
         }
 
-        public Branch GetNewBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnode)
+        public Branch GetNewBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnode, List<Branch>mainnodes)
         {
            Branch branch = new Branch();
             PipeSystemType systemtype;
@@ -366,15 +369,48 @@ namespace PipeTreeV4
                 lastnode = branch.Nodes.Last(); // Get the last added node
                 if (lastnode.Connectors.Count >= 2)
                 {
-                    /*var manifoldbranches = GetNewManifoldBranches(doc, lastnode, lastnode.PipeSystemType);
+                    var manifoldbranches = GetNewManifoldBranches(doc, lastnode, lastnode.PipeSystemType);
                     foreach (var manifoldbranch in manifoldbranches)
                     {
+                        List<Branch> secondarybranches = new List<Branch>();
+                        Branch secondarybranch = new Branch();
                         foreach (var node in manifoldbranch.Nodes)
                         {
                             //branch.AddRange(GetSecondaryBranch(doc, node.ElementId, mainnodes));
-                            GetSecondaryBranch(doc, node.ElementId, mainnodes);
+                            secondarybranch= GetNewSecondaryBranch(doc, node.ElementId,mainnode );
+                            secondarybranch.GetPressure();
+                            secondarybranches.Add(secondarybranch);
+
+                            Branch selectedbranch = new Branch();
+                            double maxpressure = double.MinValue;
+                            foreach (var secbranch in secondarybranches)
+                            {
+                                double pressure = secbranch.DPressure;
+                                if (pressure > maxpressure)
+                                {
+                                    selectedbranch = secbranch;
+                                    maxpressure = pressure;
+                                }
+                            }
+                            foreach (var node1 in selectedbranch.Nodes)
+                            {
+                                node1.IsOCK = true;
+                            }
+                            foreach (var secbranch in secondarybranches)
+                            {
+                                foreach (var el in secbranch.Nodes)
+                                {
+                                    branch.Add(el);
+                                }
+                            }
+
+
+
+                            // допустим сейчас мы смотрим это
+                            //return secondarybranch;
+
                         }
-                    }*/
+                    }
                     break;
                 }
 
@@ -470,7 +506,7 @@ namespace PipeTreeV4
                         foreach (var node in manifoldbranch.Nodes)
                         {
                             // GetNewBranch(doc, node.ElementId, mainnodes);
-                            manbranch=GetNewBranch(doc, node.ElementId, manbranch);
+                            manbranch=GetNewBranch(doc, node.ElementId, manbranch, mainnodes);
                             manbranch.GetPressure();
                             manbranches.Add(manbranch);
                         }
