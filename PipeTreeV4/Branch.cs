@@ -14,7 +14,7 @@ namespace PipeTreeV4
         public int Number { get; set; }
         public double DPressure { get; set; }
          public List<Node> Nodes { get; set; }
-
+        public bool IsOCK { get; set; }
         public Branch ()
         {
             Number = ++_counter;
