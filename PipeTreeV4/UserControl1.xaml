@@ -21,7 +21,7 @@
                 </ListBox.ItemTemplate>
             </ListBox>
             
-            <Button Content="Start" Command="{Binding ShowSelectedSystemsCommand}"/>
+            <Button Content="Start" Command="{Binding StartCommand}"/>
 
             <Label Content="{Binding SelectedSystems}" Margin="10" FontWeight="Bold"/>
         </StackPanel>

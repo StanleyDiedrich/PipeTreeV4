@@ -26,6 +26,17 @@ namespace PipeTreeV4
                 OnPropertyChanged("Document");
             }
         }
+
+        private UserControl1 window;
+        public UserControl1 Window
+        {
+            get { return window; }
+            set
+            {
+                window = value;
+                OnPropertyChanged("Window");
+            }
+        }
         public ObservableCollection<SystemNumber> SystemNumbersList
         {
             get => _systemNumbersList;
@@ -62,10 +73,18 @@ namespace PipeTreeV4
         
         public void ShowSelectedSystems( object param)
         {
-            var selectedItems = SystemNumbersList.Where(x => x.IsSelected).Select(x => x.SystemName).ToList();
-            SelectedSystems = string.Join(", ", selectedItems);
+            
+            
             //var foundedelements = GetElements(Document, SystemNumbersList);
             //SystemElements = GetSystemElements(foundedelements);
+        }
+        public ICommand StartCommand { get; }
+
+        public void StartCalculate (object param)
+        {
+            var selectedItems = SystemNumbersList.Where(x => x.IsSelected).Select(x => x.SystemName).ToList();
+            SelectedSystems = string.Join(", ", selectedItems);
+            Window.Close();
         }
 
         private List<SystemElement> systemElements; 
@@ -157,11 +176,13 @@ namespace PipeTreeV4
 
 
        
-            public MainViewModel (Autodesk.Revit.DB.Document doc, ObservableCollection<SystemNumber> systemNumbers)
+            public MainViewModel (Autodesk.Revit.DB.Document doc, UserControl1 window, ObservableCollection<SystemNumber> systemNumbers)
         {
+            Window = window;
             Document = doc;
             SystemNumbersList = systemNumbers;
             ShowSelectedSystemsCommand = new RelayCommand(ShowSelectedSystems);
+            StartCommand = new RelayCommand(StartCalculate);
            // SystemElements = new List<SystemElement>();
         }
 

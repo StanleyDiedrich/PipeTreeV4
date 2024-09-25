@@ -367,6 +367,139 @@ namespace PipeTreeV4
             return (mainnodes, additionalNodes);
         }
 
+        public void SaveFile(string content) // спрятали функцию сохранения 
+        {
+            System.Windows.Forms.SaveFileDialog saveFileDialog = new System.Windows.Forms.SaveFileDialog();
+            saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
+            saveFileDialog.Title = "Save CSV File";
+            if (saveFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    using (StreamWriter writer = new StreamWriter(saveFileDialog.FileName))
+                    {
+                        writer.Write(content);
+                    }
+
+                    Console.WriteLine("CSV file saved successfully.");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("Error saving CSV file: " + ex.Message);
+                }
+            }
+        }
+
+        public string GetContent (Autodesk.Revit.DB.Document doc, List<List<Node>>mainnodes)
+        {
+            List<ElementId> checkednodes = new List<ElementId>();
+            string csvcontent = "";
+            int branchcounter = 0;
+            foreach (var mainnode in mainnodes)
+            {
+                int counter = 0;
+                foreach (var node in mainnode)
+                {
+                    if (checkednodes.Contains(node.ElementId))
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        ModelElement modelelement = new ModelElement(doc, node, branchcounter, counter);
+                        checkednodes.Add(node.ElementId);
+                        string a = $"{modelelement.ModelElementId};{modelelement.ModelTrack};{modelelement.ModelLvl};{modelelement.ModelBranchNumber};{modelelement.ModelTrackNumber};{modelelement.ModelName};{modelelement.ModelDiameter};{modelelement.ModelLength};{modelelement.ModelVolume};{modelelement.Type.ToString()};{modelelement.ModelTrack}-{modelelement.ModelLvl}-{modelelement.ModelBranchNumber}-{modelelement.ModelTrackNumber}\n";
+                        csvcontent += a;
+                        counter++;
+                    }
+
+
+
+                }
+                branchcounter++;
+            }
+            return csvcontent;
+        }
+
+        public List<List<Node>> AlgorithmQuartierCollectorsAndRayPipes (Autodesk.Revit.DB.Document doc, List<ElementId> startelements)
+        {
+            List<List<Node>> mainnodes = new List<List<Node>>(); // тут стояк 
+            List<List<Node>> secondarynodes = new List<List<Node>>();
+            List<List<Node>> secondarySupernodes = new List<List<Node>>();
+            List<List<Node>> branches = new List<List<Node>>();
+            List<Node> additionalNodes = new List<Node>();
+            List<Node> secAdditionalNodes = new List<Node>();
+            List<ModelElement> modelElements = new List<ModelElement>();
+            PipeSystemType systemtype;
+            string shortsystemname;
+
+            foreach (var startelement in startelements)
+            {
+                (mainnodes, additionalNodes) = GetBranches(doc, startelement);
+
+
+            }
+
+            //mainnodes = RemoveDuplicatesByElementId(mainnodes);
+
+            foreach (var mainnode in mainnodes)
+            {
+                foreach (var node in mainnode)
+                {
+                    node.IsOCK = true;
+                }
+            }
+            foreach (var branch in mainnodes)
+            {
+                foreach (var node in branch)
+                {
+                    if (node.Connectors.Count == 2 && node.Connectors.Any(x => x.IsSelected == false) && node.Element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_PipeFitting)
+                    {
+                        additionalNodes.Add(node);
+                    }
+                }
+            }
+
+
+            List<ElementId> totalids = new List<ElementId>();
+
+            var startElements = additionalNodes
+            .SelectMany(node => node.Connectors)        // Выбираем все соединители из узлов
+            .Where(connector => !connector.IsSelected)  // Фильтруем только те, которые не выбраны
+            .ToList();                                  // Превращаем в список
+
+            var totalIds = new HashSet<int>();
+
+            foreach (var startelement in startElements)
+            {
+                var nextStartelement = startelement.NextOwnerId;
+                (secondarynodes, secAdditionalNodes) = GetBranches(doc, nextStartelement);
+
+                foreach (var secondarynode in secondarynodes)
+                {
+                    List<Node> branch = new List<Node>();
+                    foreach (var node in secondarynode)
+                    {
+                        if (totalIds.Add(node.ElementId.IntegerValue))
+                        {
+                            branch.Add(node);
+                        }
+                    }
+                    // Добавляем только уникальные элементы
+                    if (branch.Count != 0)
+                    {
+                        secondarySupernodes.Add(branch);
+                    }
+                    else
+                    { continue; }
+
+                }
+            }
+
+
+            mainnodes.AddRange(secondarySupernodes);
+            return mainnodes;
+        }
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
         {
@@ -406,18 +539,21 @@ namespace PipeTreeV4
                 sysNums.Add(system);
             }
 
-            MainViewModel mainViewModel = new MainViewModel(doc, sysNums);
             UserControl1 window = new UserControl1();
+            MainViewModel mainViewModel = new MainViewModel(doc,window, sysNums);
+           
             window.DataContext = mainViewModel;
             window.ShowDialog();
 
+
+
             List<ElementId> elIds = new List<ElementId>();
-
-
             var systemnames = mainViewModel.SystemNumbersList.Select(x => x).Where(x => x.IsSelected == true);
             //var systemelements = mainViewModel.SystemElements;
 
             List<ElementId> startelements = new List<ElementId>();
+
+            //Ну тут вроде норм
             foreach (var systemname in systemnames)
             {
                 string systemName = systemname.SystemName;
@@ -426,193 +562,21 @@ namespace PipeTreeV4
                 startelements.Add(maxpipe);
 
             }
-            List<List<Node>> mainnodes = new List<List<Node>>(); // тут стояк 
-            List<List<Node>> secondarynodes = new List<List<Node>>();
-            List<List<Node>> secondarySupernodes = new List<List<Node>>();
-            List<List<Node>> branches = new List<List<Node>>();
-            List<Node> additionalNodes = new List<Node>();
-            List<Node> secAdditionalNodes = new List<Node>();
-            List<ModelElement> modelElements = new List<ModelElement>();
-            PipeSystemType systemtype;
-            string shortsystemname;
+            // Это можно не трогать
 
-            foreach (var startelement in startelements)
-            {
-                (mainnodes, additionalNodes) = GetBranches(doc, startelement);
-
-
-            }
-
-            //mainnodes = RemoveDuplicatesByElementId(mainnodes);
-
-            foreach (var mainnode in mainnodes)
-            {
-                foreach (var node in mainnode)
-                {
-                    node.IsOCK = true;
-                }
-            }
-            foreach (var branch in mainnodes)
-            {
-                foreach (var node in branch)
-                {
-                    if (node.Connectors.Count == 2 && node.Connectors.Any(x => x.IsSelected == false) && node.Element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_PipeFitting)
-                    {
-                        additionalNodes.Add(node);
-                    }
-                }
-            }
-            /*Node selectednode = mainnodes.SelectMany(x => x)
-                      .Where(x => x.ElementId.IntegerValue == 1310465)
-                      .FirstOrDefault();*/
-            /* foreach (var additionalNode in additionalNodes)
-             {
-
-                 continue;
-             }*/
+           
 
 
 
+            // 
+            List<List<Node>> mainnodes= AlgorithmQuartierCollectorsAndRayPipes(doc, startelements);
+            
+            string csvcontent = GetContent(doc, mainnodes);
+            SaveFile(csvcontent);
+            
+            
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-            List<ElementId> totalids = new List<ElementId>();
-
-            var startElements = additionalNodes
-.SelectMany(node => node.Connectors)        // Выбираем все соединители из узлов
-.Where(connector => !connector.IsSelected)  // Фильтруем только те, которые не выбраны
-.ToList();                                  // Превращаем в список
-
-            var totalIds = new HashSet<int>();
-
-            /*foreach (var startelement in startElements)
-            {
-                var nextstartelement = startelement.NextOwnerId;
-                (secondarynodes, secAdditionalNodes) = GetBranches(doc, nextstartelement);
-                secondarySupernodes.AddRange(secondarynodes);
-            }*/
-
-
-
-            foreach (var startelement in startElements)
-            {
-                var nextStartelement = startelement.NextOwnerId;
-                (secondarynodes, secAdditionalNodes) = GetBranches(doc, nextStartelement);
-
-                foreach (var secondarynode in secondarynodes)
-                {
-                    List<Node> branch = new List<Node>();
-                    foreach (var node in secondarynode)
-                    {
-                        if (totalIds.Add(node.ElementId.IntegerValue))
-                        {
-                            branch.Add(node);
-                        }
-                    }
-                    // Добавляем только уникальные элементы
-                    if (branch.Count!=0)
-                    {
-                        secondarySupernodes.Add(branch);
-                    }
-                    else
-                    { continue; }
-                    
-                }
-            }
-
-
-            /* foreach (var node in additionalNodes)
-             {
-                 totalids.Add(node.ElementId);
-             }*/
-
-            mainnodes.AddRange(secondarySupernodes);
-            /* foreach (var branch in mainnodes)
-             {
-                 foreach (var node in branch)
-                 {
-                     totalids.Add(node.ElementId);
-                 }
-             }*/
-            List<ElementId> checkednodes = new List<ElementId>();
-
-
-
-            string csvcontent = "";
-            int branchcounter = 0;
-            foreach (var mainnode in mainnodes)
-            {
-                int counter = 0;
-                foreach (var node in mainnode)
-                {
-                    if (checkednodes.Contains(node.ElementId))
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        ModelElement modelelement = new ModelElement(doc, node, branchcounter, counter);
-                        checkednodes.Add(node.ElementId);
-                        string a = $"{modelelement.ModelElementId};{modelelement.ModelTrack};{modelelement.ModelLvl};{modelelement.ModelBranchNumber};{modelelement.ModelTrackNumber};{modelelement.ModelName};{modelelement.ModelDiameter};{modelelement.ModelLength};{modelelement.ModelVolume};{modelelement.Type.ToString()};{modelelement.ModelTrack}-{modelelement.ModelLvl}-{modelelement.ModelBranchNumber}-{modelelement.ModelTrackNumber}\n";
-                        csvcontent += a;
-                        counter++;
-                    }
-                   
-                    /*if (modelElement.Diameter!=modelElements.Last().Diameter || modelElement.Volume!=modelElements.Last().Volume)
-                    {
-                        counter++;
-                    }*/
-                    
-                }
-                branchcounter++;
-            }
-
-            /*string csvcontent = null;
-            foreach (var modelelement in modelElements)
-            {
-                string a = $"{modelelement.ModelElementId};{modelelement.ModelTrack};{modelelement.ModelLvl};{modelelement.ModelBranchNumber};{modelelement.ModelTrackNumber};{modelelement.ModelName};{modelelement.ModelDiameter};{modelelement.ModelLength};{modelelement.ModelVolume};{modelelement.Type.ToString()};{modelelement.ModelTrack}-{modelelement.ModelLvl}-{modelelement.ModelBranchNumber}-{modelelement.ModelTrackNumber}\n";
-                csvcontent += a + ";";
-            }*/
-            System.Windows.Forms.SaveFileDialog saveFileDialog = new System.Windows.Forms.SaveFileDialog();
-            saveFileDialog.Filter = "CSV files (*.csv)|*.csv";
-            saveFileDialog.Title = "Save CSV File";
-            if (saveFileDialog.ShowDialog() == DialogResult.OK)
-            {
-                try
-                {
-                    using (StreamWriter writer = new StreamWriter(saveFileDialog.FileName))
-                    {
-                        writer.Write(csvcontent);
-                    }
-
-                    Console.WriteLine("CSV file saved successfully.");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine("Error saving CSV file: " + ex.Message);
-                }
-            }
-
-            //uIDocument.Selection.SetElementIds(totalids);
-
-            // Я докопался до сбора данных с трубы. Завтра продолжу копать по поиску остальных элементов
-            // Что-то вроде рекурсии по обращению к последнему элементу в списке
-            // Тут надо брать элемент и проверять два попавших коннектора у кого расход больше 
+            
 
 
             return Result.Succeeded;
