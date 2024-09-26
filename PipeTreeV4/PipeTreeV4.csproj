@@ -54,6 +54,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Branch.cs" />
     <Compile Include="CustomConnector.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="MainViewModel.cs" />
