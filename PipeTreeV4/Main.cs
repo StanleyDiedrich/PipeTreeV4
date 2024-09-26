@@ -328,6 +328,7 @@ namespace PipeTreeV4
 
         public (List<Branch>, Branch) GetNewBranches(Autodesk.Revit.DB.Document doc, ElementId elementId)
         {
+            int counter = 0;
             List<Branch> mainnodes = new List<Branch>();
             Branch additionalNodes = new Branch();
             Branch mainnode = new Branch();
@@ -431,6 +432,7 @@ namespace PipeTreeV4
                     Branch selectedsecondbranch = new Branch();
                     foreach (var node in secondarymanifolds)
                     {
+                        node.IsOCK = false;
                         var secondarymanifoldbranches = GetNewManifoldBranches(doc, node, node.PipeSystemType);
                        
                         
@@ -448,20 +450,25 @@ namespace PipeTreeV4
                        
                         
                     }
-                    selectedsecondbranch = selectedsecondarybranches.OrderByDescending(x => x.DPressure).FirstOrDefault(); 
+                    selectedsecondbranch = selectedsecondarybranches.OrderByDescending(x => x.DPressure).FirstOrDefault();
                     if (selectedsecondbranch != null)
                     {
+                        
                         selectedsecondbranch.IsOCK = true;
                         selectedsecondbranch.OCKCheck();
                         mainnodes.AddRange(manbranches);
                         mainnodes.AddRange(selectedsecondarybranches);
+                       
+                        
                     }
+                    
+                    
                     else
                     {
                         break;
                     }
-                    
 
+                    
                     break;
 
                 }
@@ -488,7 +495,7 @@ namespace PipeTreeV4
             .SelectMany(node => node.Connectors) 
             .Where(connector => connector.IsSelected == false) 
             .ToList();
-            List<ElementId> additionalElements = additionalConnectors.Select(x => x.NextOwnerId).ToList();
+            List<ElementId> additionalElements = additionalConnectors.Select(x => x).Where(x=>x.IsSelected==false).Select(x=>x.NextOwnerId).ToList();
 
             foreach (var addel in additionalElements)
             {
@@ -681,6 +688,10 @@ namespace PipeTreeV4
             // Это пока не трогаем, потому что не понятно что там с другими
             // Разбираемся с GetNewBranches
             var totalIds = new HashSet<int>();
+            foreach (var el in additionalNodes.Nodes)
+            {
+                el.IsOCK = false;
+            }
             foreach (var startelement in additionalNodes.Nodes)
             {
                 var nextStartelement = startelement.ElementId;
@@ -691,6 +702,7 @@ namespace PipeTreeV4
                     Branch branch = new Branch();
                     foreach (var node in secondarynode.Nodes)
                     {
+                        node.IsOCK = false;
                         if (totalIds.Add(node.ElementId.IntegerValue))
                         {
                             branch.Add(node);
@@ -784,9 +796,9 @@ namespace PipeTreeV4
             
             
             string csvcontent = GetContent(doc, mainnodes);
-            //SaveFile(csvcontent);
+            SaveFile(csvcontent);
             //SelectBranches(uIDocument, mainnodes);
-           SelectNodes(uIDocument, mainnodes);
+            //SelectNodes(uIDocument, mainnodes);
             //SelectAllNodes(uIDocument, mainnodes);
             //SelectAdditionalNodes(uIDocument, mainnodes);
 

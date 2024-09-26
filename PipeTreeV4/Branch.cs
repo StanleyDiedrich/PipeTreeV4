@@ -40,6 +40,13 @@ namespace PipeTreeV4
                     node.IsOCK = true;
                 }
             }
+            else
+            {
+                foreach (var node in Nodes)
+                {
+                    node.IsOCK = false;
+                }
+            }
         }
         public double GetPressure() // Эту шляпу определили с целью поиска общей потери давления на ответвлении
         {
