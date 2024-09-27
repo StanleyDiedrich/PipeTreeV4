@@ -15,6 +15,8 @@ namespace PipeTreeV4
     public class MainViewModel : INotifyPropertyChanged
     {
         private ObservableCollection<SystemNumber> _systemNumbersList;
+
+        public ObservableCollection<CalculationMode> CalculationModes { get; set; }
         private SystemNumber _selectedSystemNumber;
         private Autodesk.Revit.DB.Document document;
         public Autodesk.Revit.DB.Document Document
@@ -169,21 +171,38 @@ namespace PipeTreeV4
             return systemElements;
         }
 
+        public void UpdateSelectedMode()
+        {
+            // Сброс флага IsMode для всех режимов
+            foreach (var mode in CalculationModes)
+            {
+                mode.IsMode = false;
+            }
+
+            // Установить IsMode для выбранного режима
+            var selectedMode = CalculationModes.FirstOrDefault(m => m.IsMode);
+            // Другие действия с выбранным режимом
+        }
 
 
 
 
 
 
-       
-            public MainViewModel (Autodesk.Revit.DB.Document doc, UserControl1 window, ObservableCollection<SystemNumber> systemNumbers)
+        public MainViewModel (Autodesk.Revit.DB.Document doc, UserControl1 window, ObservableCollection<SystemNumber> systemNumbers)
         {
             Window = window;
             Document = doc;
             SystemNumbersList = systemNumbers;
             ShowSelectedSystemsCommand = new RelayCommand(ShowSelectedSystems);
             StartCommand = new RelayCommand(StartCalculate);
-           // SystemElements = new List<SystemElement>();
+            CalculationModes = new ObservableCollection<CalculationMode>
+        {
+            new CalculationMode { CalculationName = "Система с поквартирными коллекторами и лучевой разводкой", CalculationId=0, IsMode = false },
+            new CalculationMode { CalculationName = "Система с поэтажными коллекторами и периметральной разводкой", CalculationId=1,IsMode = false },
+            new CalculationMode { CalculationName = "Третий вариант",CalculationId=2, IsMode = false }
+        };
+            // SystemElements = new List<SystemElement>();
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

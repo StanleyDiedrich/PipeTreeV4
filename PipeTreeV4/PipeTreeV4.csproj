@@ -55,6 +55,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Branch.cs" />
+    <Compile Include="CalculationMode.cs" />
     <Compile Include="CustomConnector.cs" />
     <Compile Include="Main.cs" />
     <Compile Include="MainViewModel.cs" />

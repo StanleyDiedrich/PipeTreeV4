@@ -73,7 +73,7 @@ namespace PipeTreeV4
         public List<Branch> GetNewManifoldBranches(Autodesk.Revit.DB.Document doc, Node node, PipeSystemType pipeSystemType)
         {
             List<Branch> branches = new List<Branch>();
-            
+
             //List<List<Node>> branches = new List<List<Node>>();
             //var connectors = node.Connectors;
             ElementId elementId = node.ElementId;
@@ -149,8 +149,8 @@ namespace PipeTreeV4
             return branches;
         }
 
-        
-        
+
+
 
         public Branch GetNewSecondaryBranch(Autodesk.Revit.DB.Document doc, ElementId elementId) // пришли с 377 строки
         {
@@ -160,7 +160,7 @@ namespace PipeTreeV4
             if (doc.GetElement(elementId) is Pipe)
             {
                 systemtype = ((doc.GetElement(elementId) as Pipe).MEPSystem as PipingSystem).SystemType;
-                
+
                 shortsystemname = (doc.GetElement(elementId) as Pipe).LookupParameter("Сокращение для системы").AsString();
                 Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname);
                 branch.Add(newnode);
@@ -168,33 +168,33 @@ namespace PipeTreeV4
             }
             else
             {
-                   
-                    shortsystemname = (doc.GetElement(elementId) as FamilyInstance).LookupParameter("Сокращение для системы").AsString();
-                    var connectors = ((doc.GetElement(elementId) as FamilyInstance)).MEPModel.ConnectorManager.Connectors;
-                    foreach (Connector connector in connectors)
-                    {
-                        systemtype = connector.PipeSystemType;
-                        Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname);
-                        branch.Add(newnode);
-                    }
-                
-               
-                
+
+                shortsystemname = (doc.GetElement(elementId) as FamilyInstance).LookupParameter("Сокращение для системы").AsString();
+                var connectors = ((doc.GetElement(elementId) as FamilyInstance)).MEPModel.ConnectorManager.Connectors;
+                foreach (Connector connector in connectors)
+                {
+                    systemtype = connector.PipeSystemType;
+                    Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname);
+                    branch.Add(newnode);
+                }
+
+
+
             }
             Node lastnode = null;
             do
             {
                 lastnode = branch.Nodes.Last();
-                
-                
+
+
                 try
                 {
                     var nextElement = doc.GetElement(lastnode.NextOwnerId);
-                    
+
                     Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
-                    
+
                     branch.Add(newnode); // Add the new node to the nodes list
-                   
+
                 }
                 catch
                 {
@@ -206,12 +206,12 @@ namespace PipeTreeV4
 
             branch.GetPressure();
             // тут мы просто собрали ветвь и вернули ее 
-            
-           
+
+
             return branch;
         }
 
-        public Branch GetNewManifoldBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnodes )
+        public Branch GetNewManifoldBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnodes)
         {
             Branch branch = new Branch();
             PipeSystemType systemtype;
@@ -240,7 +240,7 @@ namespace PipeTreeV4
             do
             {
                 lastnode = branch.Nodes.Last(); // Get the last added node
-               
+
 
 
                 try
@@ -248,7 +248,7 @@ namespace PipeTreeV4
                     var nextElement = doc.GetElement(lastnode.NextOwnerId);
                     Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
                     mainnodes.Add(newnode); // Add the new node to the nodes list
-                     //
+                                            //
                 }
                 catch
                 {
@@ -262,9 +262,9 @@ namespace PipeTreeV4
             return mainnodes;
         }
 
-        public Branch GetNewBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnode, List<Branch>mainnodes)
+        public Branch GetNewBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnode, List<Branch> mainnodes)
         {
-           Branch branch = new Branch();
+            Branch branch = new Branch();
             PipeSystemType systemtype;
             string shortsystemname;
             if (doc.GetElement(elementId) is Pipe)
@@ -292,18 +292,18 @@ namespace PipeTreeV4
             {
                 lastnode = branch.Nodes.Last(); // Get the last added node
 
-               
-               // secnode = lastnode;
+
+                // secnode = lastnode;
                 if (lastnode.Connectors.Count >= 2)
                 {
 
-                    
-                    
 
-                    
+
+
+
 
                     break;
-                    
+
                 }
 
 
@@ -312,7 +312,7 @@ namespace PipeTreeV4
                     var nextElement = doc.GetElement(lastnode.NextOwnerId);
                     Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname);
                     branch.Add(newnode); // Add the new node to the nodes list
-                   // mainnodes.Add(branch); //
+                                         // mainnodes.Add(branch); //
                 }
                 catch
                 {
@@ -322,7 +322,7 @@ namespace PipeTreeV4
             }
             while (lastnode.NextOwnerId != null);
 
-            
+
             return branch;
         }
 
@@ -390,35 +390,35 @@ namespace PipeTreeV4
                     }
                     List<Branch> manbranches = new List<Branch>();
                     //Отсюда ушел разбираться с коллекторами
-                    var manifoldbranches = GetNewManifoldBranches(doc, lastnode, lastnode.PipeSystemType); 
-                    
+                    var manifoldbranches = GetNewManifoldBranches(doc, lastnode, lastnode.PipeSystemType);
+
                     foreach (var manifoldbranch in manifoldbranches)
                     {
                         Branch manbranch = new Branch();
 
                         foreach (var node in manifoldbranch.Nodes)
                         {
-                            
+
                             // GetNewBranch(doc, node.ElementId, mainnodes);
-                            manbranch=GetNewBranch(doc, node.ElementId, manbranch, mainnodes);
+                            manbranch = GetNewBranch(doc, node.ElementId, manbranch, mainnodes);
                             manbranch.GetPressure();
                             manbranches.Add(manbranch);
                         }
-                        
+
                     }
 
-                    
+
 
                     Branch selectedbranch = new Branch();
                     double maxpressure = double.MinValue;
                     foreach (var manifoldbranch in manbranches)
                     {
                         double pressure = manifoldbranch.DPressure;
-                        if (pressure>maxpressure)
+                        if (pressure > maxpressure)
                         {
                             selectedbranch = manifoldbranch;
                             maxpressure = pressure;
-                            
+
                         }
                     }
                     selectedbranch.IsOCK = true;
@@ -434,8 +434,8 @@ namespace PipeTreeV4
                     {
                         node.IsOCK = false;
                         var secondarymanifoldbranches = GetNewManifoldBranches(doc, node, node.PipeSystemType);
-                       
-                        
+
+
                         foreach (var secondmanifoldbranch in secondarymanifoldbranches)
                         {
                             foreach (var secnode in secondmanifoldbranch.Nodes)
@@ -443,32 +443,32 @@ namespace PipeTreeV4
                                 var secondbranch = GetNewSecondaryBranch(doc, secnode.ElementId);
                                 selectedsecondarybranches.Add(secondbranch);
                             }
-                            
+
                         }
-                        
-                        
-                       
-                        
+
+
+
+
                     }
                     selectedsecondbranch = selectedsecondarybranches.OrderByDescending(x => x.DPressure).FirstOrDefault();
                     if (selectedsecondbranch != null)
                     {
-                        
+
                         selectedsecondbranch.IsOCK = true;
                         selectedsecondbranch.OCKCheck();
                         mainnodes.AddRange(manbranches);
                         mainnodes.AddRange(selectedsecondarybranches);
-                       
-                        
+
+
                     }
-                    
-                    
+
+
                     else
                     {
                         break;
                     }
 
-                    
+
                     break;
 
                 }
@@ -492,10 +492,10 @@ namespace PipeTreeV4
             mainnodes.Add(mainnode);
 
             var additionalConnectors = mainnodes.SelectMany(branch => branch.Nodes)
-            .SelectMany(node => node.Connectors) 
-            .Where(connector => connector.IsSelected == false) 
+            .SelectMany(node => node.Connectors)
+            .Where(connector => connector.IsSelected == false)
             .ToList();
-            List<ElementId> additionalElements = additionalConnectors.Select(x => x).Where(x=>x.IsSelected==false).Select(x=>x.NextOwnerId).ToList();
+            List<ElementId> additionalElements = additionalConnectors.Select(x => x).Where(x => x.IsSelected == false).Select(x => x.NextOwnerId).ToList();
 
             foreach (var addel in additionalElements)
             {
@@ -519,7 +519,7 @@ namespace PipeTreeV4
 
                     }
                 }
-                
+
             }
 
             // Continue while NextOwnerId is not null
@@ -555,7 +555,7 @@ namespace PipeTreeV4
             }
         }
 
-        public string GetContent (Autodesk.Revit.DB.Document doc, List<Branch>mainnodes)
+        public string GetContent(Autodesk.Revit.DB.Document doc, List<Branch> mainnodes)
         {
             List<ElementId> checkednodes = new List<ElementId>();
             string csvcontent = "";
@@ -585,7 +585,7 @@ namespace PipeTreeV4
             }
             return csvcontent;
         }
-        public void SelectBranches (UIDocument uidoc, List<Branch> mainnodes)
+        public void SelectBranches(UIDocument uidoc, List<Branch> mainnodes)
         {
             List<ElementId> totalids = new List<ElementId>();
             foreach (var mainnode in mainnodes)
@@ -606,11 +606,11 @@ namespace PipeTreeV4
             {
                 foreach (var node in mainnode.Nodes)
                 {
-                    if (node.IsOCK==true)
+                    if (node.IsOCK == true)
                     {
                         totalids.Add(node.ElementId);
                     }
-                   
+
                 }
             }
 
@@ -640,10 +640,10 @@ namespace PipeTreeV4
             {
                 foreach (var node in mainnode.Nodes)
                 {
-                    
-                    
-                        totalids.Add(node.ElementId);
-                    
+
+
+                    totalids.Add(node.ElementId);
+
 
                 }
             }
@@ -651,7 +651,7 @@ namespace PipeTreeV4
             uidoc.Selection.SetElementIds(totalids);
         }
 
-        public List<Branch> AlgorithmQuartierCollectorsAndRayPipes (Autodesk.Revit.DB.Document doc, List<ElementId> startelements)
+        public List<Branch> AlgorithmQuartierCollectorsAndRayPipes(Autodesk.Revit.DB.Document doc, List<ElementId> startelements)
         {
             List<Branch> mainnodes = new List<Branch>(); // тут стояк 
             List<Branch> secondarynodes = new List<Branch>();
@@ -672,7 +672,7 @@ namespace PipeTreeV4
 
             //mainnodes = RemoveDuplicatesByElementId(mainnodes);
 
-           // Тут удалил проход по всем элементам mainnodes 
+            // Тут удалил проход по всем элементам mainnodes 
             foreach (var branch in mainnodes)
             {
                 foreach (var node in branch.Nodes)
@@ -720,8 +720,12 @@ namespace PipeTreeV4
             }
 
 
-                mainnodes.AddRange(secondarySupernodes);
+            mainnodes.AddRange(secondarySupernodes);
             return mainnodes;
+        }
+        private List<Branch> AlgorithmFloorCollectorAndTihelman(Document doc, List<ElementId> startelements)
+        {
+            throw new NotImplementedException();
         }
 
         public Result Execute(ExternalCommandData commandData, ref string message, ElementSet elements)
@@ -763,8 +767,8 @@ namespace PipeTreeV4
             }
 
             UserControl1 window = new UserControl1();
-            MainViewModel mainViewModel = new MainViewModel(doc,window, sysNums);
-           
+            MainViewModel mainViewModel = new MainViewModel(doc, window, sysNums);
+
             window.DataContext = mainViewModel;
             window.ShowDialog();
 
@@ -787,26 +791,51 @@ namespace PipeTreeV4
             }
             // Это можно не трогать
 
-           
-
-
-
-            // 
-            List<Branch> mainnodes= AlgorithmQuartierCollectorsAndRayPipes(doc, startelements);
-            
-            
-            string csvcontent = GetContent(doc, mainnodes);
-            SaveFile(csvcontent);
-            //SelectBranches(uIDocument, mainnodes);
-            //SelectNodes(uIDocument, mainnodes);
-            //SelectAllNodes(uIDocument, mainnodes);
-            //SelectAdditionalNodes(uIDocument, mainnodes);
 
 
 
 
+             List<Branch> mainnodes = new List<Branch>();
+            var selectedMode = mainViewModel.CalculationModes
+    .FirstOrDefault(x => x.IsMode == true);
 
-            return Result.Succeeded;
+            if (selectedMode != null)
+            {
+                int mode = selectedMode.CalculationId;  // Получаем Id расчета
+                  // Инициализируем список для главных узлов
+
+                switch (mode)
+                {
+                    case 0:
+                        mainnodes = AlgorithmQuartierCollectorsAndRayPipes(doc, startelements);
+                        break;  // Обязательно добавляем break для правильного выполнения
+
+                    case 1:
+                        mainnodes = AlgorithmFloorCollectorAndTihelman(doc, startelements);
+                        break;  // Обязательно добавляем break для правильного выполнения
+
+                    default:  // Обработка случая, если mode не совпадает ни с одним из вышеуказанных
+                        throw new InvalidOperationException($"Неизвестный режим расчета: {mode}");
+                }
+            }
+
+
+
+
+                string csvcontent = GetContent(doc, mainnodes);
+                SaveFile(csvcontent);
+                //SelectBranches(uIDocument, mainnodes);
+                //SelectNodes(uIDocument, mainnodes);
+                //SelectAllNodes(uIDocument, mainnodes);
+                //SelectAdditionalNodes(uIDocument, mainnodes);
+
+
+
+
+
+                return Result.Succeeded;
+            }
         }
+
+       
     }
-}
