@@ -796,9 +796,9 @@ namespace PipeTreeV4
             
             
             string csvcontent = GetContent(doc, mainnodes);
-            SaveFile(csvcontent);
+            //SaveFile(csvcontent);
             //SelectBranches(uIDocument, mainnodes);
-            //SelectNodes(uIDocument, mainnodes);
+            SelectNodes(uIDocument, mainnodes);
             //SelectAllNodes(uIDocument, mainnodes);
             //SelectAdditionalNodes(uIDocument, mainnodes);
 
