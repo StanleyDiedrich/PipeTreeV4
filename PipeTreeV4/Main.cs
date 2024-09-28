@@ -1251,6 +1251,19 @@ namespace PipeTreeV4
 
 
 
+
+            // 
+            List<Branch> mainnodes= AlgorithmQuartierCollectorsAndRayPipes(doc, startelements);
+            
+            
+            string csvcontent = GetContent(doc, mainnodes);
+            //SaveFile(csvcontent);
+            //SelectBranches(uIDocument, mainnodes);
+            SelectNodes(uIDocument, mainnodes);
+            //SelectAllNodes(uIDocument, mainnodes);
+            //SelectAdditionalNodes(uIDocument, mainnodes);
+
+
              List<Branch> mainnodes = new List<Branch>();
             var selectedMode = mainViewModel.CalculationModes
     .FirstOrDefault(x => x.IsMode == true);
