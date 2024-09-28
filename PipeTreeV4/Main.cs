@@ -316,6 +316,7 @@ namespace PipeTreeV4
                                         Node newnode1 = new Node(doc, doc.GetElement(nextelement.Id), systemtype, shortsystemname,mode);
                                         newnode1.NextOwnerId = nextconnector.Owner.Id;
                                         newnode1.PipeSystemType = PipeSystemType.ReturnHydronic;
+                                        newnode1.Reverse = true;
                                         nxtnode = newnode1;
                                         
 
@@ -326,6 +327,7 @@ namespace PipeTreeV4
                                         Node newnode1 = new Node(doc, doc.GetElement(nextelement.Id), systemtype, shortsystemname,mode);
                                         newnode1.NextOwnerId = nextconnector.Owner.Id;
                                         newnode1.PipeSystemType = PipeSystemType.ReturnHydronic;
+                                        newnode1.Reverse = true;
                                         nxtnode = newnode1;
 
                                     }
@@ -378,27 +380,51 @@ namespace PipeTreeV4
                 // secnode = lastnode;
                 if (lastnode.Element is FamilyInstance)
                 {
+                   
+                    if (lastnode.Connectors.Count >= 4)
+                    {
+                        if (lastnode.Reverse == true)
+                        {
+                            var nexteelement = GetManifoldReverseBranch(doc, lastnode, lastnode.PipeSystemType);
+                            var newnode = new Node(doc,doc.GetElement( nexteelement.ElementId), nexteelement.PipeSystemType, shortsystemname, mode);
+                            if (newnode.ElementId.IntegerValue == 2946937)
+                            {
+                                lastnode = lastnode;
+                            }
+                            branch.Add(newnode);
+                            lastnode = newnode;
+                            
+                        }
+                    }
                     if (lastnode.Element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_MechanicalEquipment)
                     {
                             mode = true;
                             Node nxtnode = GetNextElemAfterEquipment(doc, lastnode);
                             //branch.Add(nxtnode);
                             lastnode = nxtnode;
-                        
-                        
-                        
-                        
+                       
+
+
+
+
                     }
                 }
 
 
                 try
                 {
+                    
+
                     var nextElement = doc.GetElement(lastnode.NextOwnerId);
-                   
-                    Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname, mode);
-                    branch.Add(newnode); // Add the new node to the nodes list
-                                         // mainnodes.Add(branch); //
+                    Node newnode = null; 
+                    
+                    
+                    
+                        newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname, mode);
+                        branch.Add(newnode); // Add the new node to the nodes list
+                                             // mainnodes.Add(branch); //
+                    
+
                 }
                 catch
                 {
@@ -532,6 +558,7 @@ namespace PipeTreeV4
 
                     }
                 }
+               
                 if (lastnode.Connectors.Count >= 4)
                 {
                     foreach (var node in mainnode.Nodes)
@@ -547,7 +574,10 @@ namespace PipeTreeV4
                     }
                     else
                     {
-                        Branch reversebranch = GetManifoldReverseBranch(doc, lastnode, lastnode.PipeSystemType);
+                        Node reversenode = GetManifoldReverseBranch(doc, lastnode, lastnode.PipeSystemType);
+                        mainnode.Add(reversenode);
+                        lastnode = reversenode;
+
                     }
 
                     foreach (var manifoldbranch in manifoldbranches)
@@ -561,6 +591,7 @@ namespace PipeTreeV4
                             manbranch = GetTihelmanBranch(doc, node.ElementId, manbranch, mainnodes);
                             manbranch.GetPressure();
                             manbranches.Add(manbranch);
+                            mode = false;
                         }
 
                     }
@@ -664,9 +695,59 @@ namespace PipeTreeV4
             return (mainnodes, additionalNodes);
         }
 
-        private Branch GetManifoldReverseBranch(Document doc, Node lastnode, PipeSystemType pipeSystemType)
+        private Node GetManifoldReverseBranch(Document doc, Node lastnode, PipeSystemType pipeSystemType)
         {
-            throw new NotImplementedException();
+            Node nextnode = null;
+            Element element = lastnode.Element;
+            FamilyInstance familyInstance = element as FamilyInstance;
+            MEPModel mepmodel = familyInstance.MEPModel;
+            ConnectorSet connectorSet = mepmodel.ConnectorManager.Connectors;
+
+            foreach (Connector connect in connectorSet)
+            {
+                ConnectorSet nextconnectors = connect.AllRefs;
+                foreach (Connector nextconnect in nextconnectors)
+                {
+                    if (doc.GetElement(nextconnect.Owner.Id) is PipingSystem)
+                    {
+                        continue;
+                    }
+
+                    else if (nextconnect.Owner.Id == lastnode.ElementId)
+                    {
+                        continue;
+                    }
+
+                    else if (nextconnectors.Size < 1)
+                    {
+                        continue;
+                    }
+                    else
+                    {
+                        if (nextconnect.Domain == Autodesk.Revit.DB.Domain.DomainHvac || nextconnect.Domain == Autodesk.Revit.DB.Domain.DomainPiping)
+                        {
+                            if (pipeSystemType == PipeSystemType.SupplyHydronic)
+                            {
+                                if (nextconnect.Direction == FlowDirectionType.Out)
+                                {
+                                    nextnode = new Node(doc, doc.GetElement(nextconnect.Owner.Id), PipeSystemType.SupplyHydronic, lastnode.ShortSystemName, true);
+                                }
+                            }
+
+                            else if (pipeSystemType == PipeSystemType.ReturnHydronic)
+                            {
+                                if (nextconnect.Direction == FlowDirectionType.In)
+                                {
+                                    nextnode = new Node(doc, doc.GetElement(nextconnect.Owner.Id), PipeSystemType.ReturnHydronic, lastnode.ShortSystemName, true);
+                                }
+
+                            }
+                        }
+                    }
+                }
+                
+            }
+            return nextnode;
         }
 
         public (List<Branch>, Branch) GetNewBranches(Autodesk.Revit.DB.Document doc, ElementId elementId)

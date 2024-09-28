@@ -154,7 +154,14 @@ namespace PipeTreeV4
                 if (document.GetElement(ModelElementId).LookupParameter("Диаметр") != null && document.GetElement(ModelElementId).LookupParameter("Диаметр").AsDouble() != 0)
                 {
                     ModelDiameter = document.GetElement(ModelElementId).LookupParameter("Диаметр").AsDouble() * 304.8;
-                    Diameter = node.Connectors.First().Diameter * 304.8;
+                    try
+                    {
+                        Diameter = node.Connectors.First().Diameter * 304.8;
+                    }
+                    catch
+                    {
+                        
+                    }
                 }
                 else if (document.GetElement(ModelElementId).LookupParameter("Условный диаметр") != null && document.GetElement(ModelElementId).LookupParameter("Условный диаметр").AsDouble() != 0)
                 {
