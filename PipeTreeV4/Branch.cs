@@ -14,6 +14,7 @@ namespace PipeTreeV4
         public int Number { get; set; }
         public double DPressure { get; set; }
          public List<Node> Nodes { get; set; }
+         
         public bool IsOCK { get; set; }
         public Branch ()
         {
@@ -37,6 +38,7 @@ namespace PipeTreeV4
             {
                 foreach(var node in Nodes)
                 {
+                    
                     node.IsOCK = true;
                 }
             }
@@ -48,39 +50,59 @@ namespace PipeTreeV4
                 }
             }
         }
+        public void RemoveNull()
+        {
+            // Create a new list to store non-null nodes
+            List<Node> nonNullNodes = new List<Node>();
+
+            foreach (var node in Nodes)
+            {
+                if (node != null)
+                {
+                    nonNullNodes.Add(node);  // Add non-null nodes to the new list
+                }
+            }
+
+            Nodes = nonNullNodes;  // Update the Nodes list
+        }
+
         public double GetPressure() // Эту шляпу определили с целью поиска общей потери давления на ответвлении
         {
             double pressure = 0;
 
             foreach (var node in Nodes)
             {
-                Element element = node.Element;
-                if (element is Pipe)
+                if (node!=null)
                 {
-                    try
+                    Element element = node.Element;
+                    if (element is Pipe)
                     {
-                        double dpressure = (element as Pipe).LookupParameter("Падение давления").AsDouble();
-                        pressure += dpressure;
-                    }
-                    catch
-                    {
-                        ConnectorSet connectors = (element as Pipe).ConnectorManager.Connectors;
-                        foreach (Connector connector in connectors)
+                        try
                         {
-                            if (connector.PipeSystemType == PipeSystemType.SupplyHydronic && connector.Direction==FlowDirectionType.In)
+                            double dpressure = (element as Pipe).LookupParameter("Падение давления").AsDouble();
+                            pressure += dpressure;
+                        }
+                        catch
+                        {
+                            ConnectorSet connectors = (element as Pipe).ConnectorManager.Connectors;
+                            foreach (Connector connector in connectors)
                             {
-                                double dpressure = connector.PressureDrop;
-                                pressure += dpressure;
-                            }
-                            else if (connector.PipeSystemType == PipeSystemType.ReturnHydronic && connector.Direction == FlowDirectionType.Out)
-                            {
-                                double dpressure = connector.PressureDrop;
-                                pressure += dpressure;
+                                if (connector.PipeSystemType == PipeSystemType.SupplyHydronic && connector.Direction == FlowDirectionType.In)
+                                {
+                                    double dpressure = connector.PressureDrop;
+                                    pressure += dpressure;
+                                }
+                                else if (connector.PipeSystemType == PipeSystemType.ReturnHydronic && connector.Direction == FlowDirectionType.Out)
+                                {
+                                    double dpressure = connector.PressureDrop;
+                                    pressure += dpressure;
+                                }
                             }
                         }
+
                     }
-                   
                 }
+                
             }
             DPressure = pressure;
             return DPressure;
