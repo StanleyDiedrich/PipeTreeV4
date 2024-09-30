@@ -441,14 +441,15 @@ namespace PipeTreeV4
 
                 lastnode = branch.Nodes.Last(); // Get the last added node
 
-                if (lastnode.ElementId.IntegerValue == 2896272)
-                {
-                    lastnode = lastnode;
-                }
+                
 
                 // secnode = lastnode;
                 if (lastnode.Element is FamilyInstance)
                 {
+                    if (lastnode.ElementId.IntegerValue== 2896319)
+                    {
+                        lastnode = lastnode;
+                    }
                     tee_counter = branch.Nodes.Select(x => x).Where(y => y.IsTee == true).Count();
                     if (lastnode.Connectors.Count >= 4)
                     {
@@ -456,10 +457,7 @@ namespace PipeTreeV4
                         {
                             var nexteelement = GetManifoldReverseBranch(doc, lastnode, lastnode.PipeSystemType);
                             var newnode = new Node(doc, doc.GetElement(nexteelement.ElementId), nexteelement.PipeSystemType, shortsystemname, mode);
-                            if (newnode.ElementId.IntegerValue == 2946937)
-                            {
-                                lastnode = lastnode;
-                            }
+                            
                             branch.Add(newnode);
                             lastnode = newnode;
 
@@ -483,10 +481,13 @@ namespace PipeTreeV4
                         .Where(y => !y.IsSelected) // Filter to get only unselected connectors
                         .Select(x => x.NextOwnerId) // Select OwnerId
                         .FirstOrDefault();
-                            Node nextnode = new Node(doc, doc.GetElement(lastnode.ElementId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                            lastnode.NextOwnerId = nextElId;
+
+                            //ВОТ ЭТО ПОД КОММЕНТОМ ОШИБКА. Теперь находит нормально прибор ОЦК в периметралке
+                            /*Node nextnode = new Node(doc, doc.GetElement(lastnode.ElementId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
                             nextnode.NextOwnerId = nextElId;
                             lastnode = nextnode;
-                            branch.Add(lastnode);
+                            branch.Add(nextnode);*/
                         }
 
                     }
