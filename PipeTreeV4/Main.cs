@@ -343,14 +343,28 @@ namespace PipeTreeV4
 
         public Branch GetTihelmanBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnode, List<Branch> mainnodes)
         {
+            int tee_counter = 0;
+            int equipment_counter = 0;
             Branch branch = new Branch();
             PipeSystemType systemtype;
             string shortsystemname;
+            string longsystemname=string.Empty;
             bool mode = false;
+            Element nextelement = null;
             if (doc.GetElement(elementId) is Pipe)
             {
                 systemtype = ((doc.GetElement(elementId) as Pipe).MEPSystem as PipingSystem).SystemType;
                 shortsystemname = (doc.GetElement(elementId) as Pipe).LookupParameter("Сокращение для системы").AsString();
+                
+                var longsystemname2 = (doc.GetElement(elementId) as Pipe).LookupParameter("Имя системы").AsValueString();
+                if (longsystemname2 == string.Empty)
+                {
+                    longsystemname = longsystemname;
+                }
+                else
+                {
+                    longsystemname = longsystemname2;
+                }
                 Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname,mode);
                 branch.Add(newnode);
 
@@ -358,18 +372,73 @@ namespace PipeTreeV4
             else
             {
                 shortsystemname = (doc.GetElement(elementId) as FamilyInstance).LookupParameter("Сокращение для системы").AsString();
+                try
+                {
+                    var longsystemname2 = (doc.GetElement(elementId) as FamilyInstance).LookupParameter("Имя системы").AsValueString();
+                    if (longsystemname2 == string.Empty)
+                    {
+                        longsystemname = longsystemname;
+                    }
+                    else
+                    {
+                        longsystemname = longsystemname2;
+                    }
+                }
+                catch
+                {
+                    longsystemname = longsystemname;
+                }
+                
                 var connectors = ((doc.GetElement(elementId) as FamilyInstance)).MEPModel.ConnectorManager.Connectors;
                 foreach (Connector connector in connectors)
                 {
                     systemtype = connector.PipeSystemType;
                     Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname,mode);
+                    
                     branch.Add(newnode);
                 }
             }
+            
+            var equipment = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_MechanicalEquipment).WhereElementIsNotElementType().ToElementIds();
+            if(longsystemname ==null || longsystemname== string.Empty)
+            {
+                bool emptystring = true;
+            }
+            List<Element> systemequipment = new List<Element>();
+            try
+            {
+               foreach (var equip in equipment)
+                {
+                    if (equip!=null)
+                    {
+                        if (doc.GetElement(equip).Category.Id.IntegerValue==(int)BuiltInCategory.OST_MechanicalEquipment)
+                        {
+                            if ((doc.GetElement(equip) as FamilyInstance).LookupParameter("Имя системы") != null)
+                            {
+                                try
+                                {
+                                    if (doc.GetElement(equip).get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsValueString().Contains(longsystemname)) 
+                                    {
+                                        systemequipment.Add(doc.GetElement(equip));
+                                    }
+                                }
+                                catch { }
+
+                            }
+                        }
+                        
+                        
+                    }
+                }
+            }
+            catch { }
+           
+            equipment_counter = systemequipment.Count();
             Node lastnode = null;
             Node secnode = null;
             do
             {
+                
                 lastnode = branch.Nodes.Last(); // Get the last added node
 
                 if (lastnode.ElementId.IntegerValue==2896272)
@@ -380,7 +449,7 @@ namespace PipeTreeV4
                 // secnode = lastnode;
                 if (lastnode.Element is FamilyInstance)
                 {
-                   
+                    tee_counter = branch.Nodes.Select(x => x).Where(y => y.IsTee == true).Count();
                     if (lastnode.Connectors.Count >= 4)
                     {
                         if (lastnode.Reverse == true)
@@ -396,34 +465,89 @@ namespace PipeTreeV4
                             
                         }
                     }
+
                     if (lastnode.Element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_MechanicalEquipment)
                     {
-                            mode = true;
-                            Node nxtnode = GetNextElemAfterEquipment(doc, lastnode);
-                            //branch.Add(nxtnode);
-                            lastnode = nxtnode;
-                       
+                        mode = true;
+                        Node nxtnode = GetNextElemAfterEquipment(doc, lastnode);
+                        //branch.Add(nxtnode);
+                        lastnode = nxtnode;
+
 
 
 
 
                     }
-                }
+                    if (lastnode.ElementId.IntegerValue==2896319)
+                    {
+                        lastnode = lastnode;
+                    }
+                    if (tee_counter==1 || tee_counter== equipment_counter-2)
+                    {
+                        if (lastnode.IsTee)
+                        {
+                            var nextElId = lastnode.Connectors
+                        .Where(y => !y.IsSelected) // Filter to get only unselected connectors
+                        .Select(x => x.NextOwnerId) // Select OwnerId
+                        .FirstOrDefault();
+                            Node nextnode = new Node(doc, doc.GetElement(lastnode.ElementId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                            nextnode.NextOwnerId = nextElId;
+                            lastnode = nextnode;
+                            branch.Add(lastnode);
+                        }
+                        
+                    }
+
+                    if (lastnode.Element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_MechanicalEquipment)
+                    {
+
+                        mode = true;
+                        
+
+                            Node nxtnode = GetNextElemAfterEquipment(doc, lastnode);
+                            branch.Add(nxtnode);
+                            lastnode = nxtnode;
+
+
+
+                        
+                    }
+
+                    
+                       
+                    
+
+
+
+
+                    }
+
+                    
+
+
+
+
+
+
+
+
+                
+                
 
 
                 try
                 {
                     
 
-                    var nextElement = doc.GetElement(lastnode.NextOwnerId);
-                    Node newnode = null; 
+                     nextelement = doc.GetElement(lastnode.NextOwnerId);
+                     Node newnode = null; 
                     
                     
                     
-                        newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname, mode);
+                        newnode = new Node(doc, nextelement, lastnode.PipeSystemType, shortsystemname, mode);
                         branch.Add(newnode); // Add the new node to the nodes list
                                              // mainnodes.Add(branch); //
-                    
+                        
 
                 }
                 catch
@@ -431,7 +555,7 @@ namespace PipeTreeV4
                     
                    break;
                 }
-
+                
             }
             while (lastnode.NextOwnerId != null);
 
@@ -504,16 +628,21 @@ namespace PipeTreeV4
         }
         public (List<Branch>, Branch) GetTihelmanBranches(Autodesk.Revit.DB.Document doc, ElementId elementId)
         {
+
+            
+            
             bool mode = false;
             List<Branch> mainnodes = new List<Branch>();
             Branch additionalNodes = new Branch();
             Branch mainnode = new Branch();
             PipeSystemType systemtype;
             string shortsystemname;
+           
             if (doc.GetElement(elementId) is Pipe)
             {
                 systemtype = ((doc.GetElement(elementId) as Pipe).MEPSystem as PipingSystem).SystemType;
                 shortsystemname = (doc.GetElement(elementId) as Pipe).LookupParameter("Сокращение для системы").AsString();
+               
                 Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname,mode);
                 mainnode.Add(newnode);
 
@@ -522,6 +651,7 @@ namespace PipeTreeV4
             {
                 shortsystemname = (doc.GetElement(elementId) as FamilyInstance).LookupParameter("Сокращение для системы").AsString();
                 var connectors = ((doc.GetElement(elementId) as FamilyInstance)).MEPModel.ConnectorManager.Connectors;
+                
                 foreach (Connector connector in connectors)
                 {
                     systemtype = connector.PipeSystemType;
@@ -530,6 +660,9 @@ namespace PipeTreeV4
 
                 }
             }
+           
+
+
 
             Node lastnode = null;
 
@@ -589,6 +722,7 @@ namespace PipeTreeV4
 
                             // GetNewBranch(doc, node.ElementId, mainnodes);
                             manbranch = GetTihelmanBranch(doc, node.ElementId, manbranch, mainnodes);
+                            manbranch.RemoveNull();
                             manbranch.GetPressure();
                             manbranches.Add(manbranch);
                             mode = false;
@@ -1295,7 +1429,7 @@ namespace PipeTreeV4
                 //SaveFile(csvcontent);
                 //SelectBranches(uIDocument, mainnodes);
                 SelectNodes(uIDocument, mainnodes);
-                //SelectAllNodes(uIDocument, mainnodes);
+                 //SelectAllNodes(uIDocument, mainnodes);
                 //SelectAdditionalNodes(uIDocument, mainnodes);
 
 
