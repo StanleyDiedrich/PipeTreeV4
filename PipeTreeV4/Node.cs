@@ -32,14 +32,15 @@ namespace PipeTreeV4
         public bool IsSelected { get; set; }
 
         public bool IsOCK { get; set; }
+        public bool Reverse { get; set; }
 
-        public Node (Autodesk.Revit.DB.Document doc, Element element, PipeSystemType pipeSystemType, string shortsystemName)
+        public Node (Autodesk.Revit.DB.Document doc, Element element, PipeSystemType pipeSystemType, string shortsystemName, bool reverse)
         {
             Element = element;
             ElementId = Element.Id;
             ShortSystemName = shortsystemName;
             PipeSystemType = pipeSystemType;
-            
+            Reverse = reverse;
 
 
            
@@ -123,32 +124,69 @@ namespace PipeTreeV4
 
                                     if (pipeSystemType == PipeSystemType.SupplyHydronic)
                                     {
-                                        if (connect.Direction == FlowDirectionType.In || connect.Direction == FlowDirectionType.Out)
+                                        if (Reverse==false)
                                         {
-                                            custom.Flow = connect.Flow;
-                                            custom.Domain = Domain.DomainPiping;
-                                            custom.DirectionType = FlowDirectionType.In;
-                                            custom.NextOwnerId = connect.Owner.Id;
-                                            custom.Diameter = connect.Radius * 2;
-                                            custom.PressureDrop = connect.PressureDrop; // Вот это добавлено в версии 4.1
-                                            NextOwnerId = custom.NextOwnerId;
+                                            if (connect.Direction == FlowDirectionType.In || connect.Direction == FlowDirectionType.Out)
+                                            {
+                                                custom.Flow = connect.Flow;
+                                                custom.Domain = Domain.DomainPiping;
+                                                custom.DirectionType = FlowDirectionType.In;
+                                                custom.NextOwnerId = connect.Owner.Id;
+                                                custom.Diameter = connect.Radius * 2;
+                                                custom.PressureDrop = connect.PressureDrop; // Вот это добавлено в версии 4.1
+                                                NextOwnerId = custom.NextOwnerId;
 
-                                            customConnectors.Add(custom);
+                                                customConnectors.Add(custom);
+                                            }
                                         }
+                                        else
+                                        {
+                                            if (connect.Direction == FlowDirectionType.In || connect.Direction == FlowDirectionType.Out)
+                                            {
+                                                custom.Flow = connect.Flow;
+                                                custom.Domain = Domain.DomainPiping;
+                                                custom.DirectionType = FlowDirectionType.Out;
+                                                custom.NextOwnerId = connect.Owner.Id;
+                                                custom.Diameter = connect.Radius * 2;
+                                                custom.PressureDrop = connect.PressureDrop; // Вот это добавлено в версии 4.1
+                                                NextOwnerId = custom.NextOwnerId;
+
+                                                customConnectors.Add(custom);
+                                            }
+                                        }
+                                       
                                     }
                                     else if (pipeSystemType == PipeSystemType.ReturnHydronic)
                                     {
-                                        if (connect.Direction == FlowDirectionType.Out || connect.Direction == FlowDirectionType.In)
+                                        if (Reverse==false)
                                         {
-                                            custom.Flow = connect.Flow;
-                                            custom.Domain = Domain.DomainPiping;
-                                            custom.DirectionType = FlowDirectionType.Out;
-                                            custom.NextOwnerId = connect.Owner.Id;
-                                            NextOwnerId = custom.NextOwnerId;
-                                            custom.Diameter = connect.Radius * 2;
-                                            custom.PressureDrop = connect.PressureDrop; // Вот это добавлено в версии 4.1
-                                            customConnectors.Add(custom);
+                                            if (connect.Direction == FlowDirectionType.Out || connect.Direction == FlowDirectionType.In)
+                                            {
+                                                custom.Flow = connect.Flow;
+                                                custom.Domain = Domain.DomainPiping;
+                                                custom.DirectionType = FlowDirectionType.Out;
+                                                custom.NextOwnerId = connect.Owner.Id;
+                                                NextOwnerId = custom.NextOwnerId;
+                                                custom.Diameter = connect.Radius * 2;
+                                                custom.PressureDrop = connect.PressureDrop; // Вот это добавлено в версии 4.1
+                                                customConnectors.Add(custom);
+                                            }
                                         }
+                                        else
+                                        {
+                                            if (connect.Direction == FlowDirectionType.Out || connect.Direction == FlowDirectionType.In)
+                                            {
+                                                custom.Flow = connect.Flow;
+                                                custom.Domain = Domain.DomainPiping;
+                                                custom.DirectionType = FlowDirectionType.In;
+                                                custom.NextOwnerId = connect.Owner.Id;
+                                                NextOwnerId = custom.NextOwnerId;
+                                                custom.Diameter = connect.Radius * 2;
+                                                custom.PressureDrop = connect.PressureDrop; // Вот это добавлено в версии 4.1
+                                                customConnectors.Add(custom);
+                                            }
+                                        }
+                                        
 
                                     }
                                 }
@@ -196,33 +234,68 @@ namespace PipeTreeV4
 
                                 if (connect.Domain == Autodesk.Revit.DB.Domain.DomainHvac || connect.Domain == Autodesk.Revit.DB.Domain.DomainPiping)
                                 {
-
-                                    if (pipeSystemType == PipeSystemType.SupplyHydronic)
+                                    if (Reverse == false)
                                     {
-                                        if (connect.Direction == FlowDirectionType.In)
+                                        if (pipeSystemType == PipeSystemType.SupplyHydronic)
                                         {
-                                            custom.Flow = connect.Flow;
-                                            custom.Domain = Domain.DomainPiping;
-                                            custom.DirectionType = FlowDirectionType.In;
-                                            custom.NextOwnerId = connect.Owner.Id;
-                                            NextOwnerId = custom.NextOwnerId;
+                                            if (connect.Direction == FlowDirectionType.In)
+                                            {
+                                                custom.Flow = connect.Flow;
+                                                custom.Domain = Domain.DomainPiping;
+                                                custom.DirectionType = FlowDirectionType.In;
+                                                custom.NextOwnerId = connect.Owner.Id;
+                                                NextOwnerId = custom.NextOwnerId;
 
-                                            Connectors.Add(custom);
-                                        }
-                                    }
-                                    else if (pipeSystemType == PipeSystemType.ReturnHydronic)
-                                    {
-                                        if (connect.Direction == FlowDirectionType.Out)
-                                        {
-                                            custom.Flow = connect.Flow;
-                                            custom.Domain = Domain.DomainPiping;
-                                            custom.DirectionType = FlowDirectionType.Out;
-                                            custom.NextOwnerId = connect.Owner.Id;
-                                            NextOwnerId = custom.NextOwnerId;
-                                            Connectors.Add(custom);
+                                                Connectors.Add(custom);
+                                            }
                                         }
 
+                                        else if (pipeSystemType == PipeSystemType.ReturnHydronic)
+                                        {
+                                            if (connect.Direction == FlowDirectionType.Out)
+                                            {
+                                                custom.Flow = connect.Flow;
+                                                custom.Domain = Domain.DomainPiping;
+                                                custom.DirectionType = FlowDirectionType.Out;
+                                                custom.NextOwnerId = connect.Owner.Id;
+                                                NextOwnerId = custom.NextOwnerId;
+                                                Connectors.Add(custom);
+                                            }
+
+                                        }
                                     }
+                                    else
+                                    {
+                                        if (pipeSystemType == PipeSystemType.SupplyHydronic)
+                                        {
+                                            if (connect.Direction == FlowDirectionType.Out)
+                                            {
+                                                custom.Flow = connect.Flow;
+                                                custom.Domain = Domain.DomainPiping;
+                                                custom.DirectionType = FlowDirectionType.Out;
+                                                custom.NextOwnerId = connect.Owner.Id;
+                                                NextOwnerId = custom.NextOwnerId;
+
+                                                Connectors.Add(custom);
+                                            }
+                                        }
+
+                                        else if (pipeSystemType == PipeSystemType.ReturnHydronic)
+                                        {
+                                            if (connect.Direction == FlowDirectionType.In)
+                                            {
+                                                custom.Flow = connect.Flow;
+                                                custom.Domain = Domain.DomainPiping;
+                                                custom.DirectionType = FlowDirectionType.In;
+                                                custom.NextOwnerId = connect.Owner.Id;
+                                                NextOwnerId = custom.NextOwnerId;
+                                                Connectors.Add(custom);
+                                            }
+
+                                        }
+                                    }
+
+
                                 }
                             }
                         }
