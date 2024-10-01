@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel.Design;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -343,6 +344,17 @@ namespace PipeTreeV4
 
         public Branch GetTihelmanBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnode, List<Branch> mainnodes)
         {
+            FilteredWorksetCollector collector = new FilteredWorksetCollector(doc);
+            IList<Workset> worksets = collector.OfKind(WorksetKind.UserWorkset).ToWorksets();
+            WorksetId selected_workset_id=WorksetId.InvalidWorksetId;
+            foreach (var workset in worksets)
+            {
+                if (workset.Name == "(30)_ОВ1_27")
+                {
+                    selected_workset_id = workset.Id;
+                }
+            }
+
             int tee_counter = 0;
             int equipment_counter = 0;
             Branch branch = new Branch();
@@ -417,12 +429,17 @@ namespace PipeTreeV4
                             {
                                 try
                                 {
-                                    if (doc.GetElement(equip).get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsValueString().Contains(longsystemname))
+                                    if (doc.GetElement(equip).get_Parameter(BuiltInParameter.ELEM_PARTITION_PARAM).AsInteger() !=selected_workset_id.IntegerValue)
+                                    {
+                                        continue;
+                                    }
+                                     else if (doc.GetElement(equip).get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsValueString().Contains(longsystemname))
                                     {
                                         systemequipment.Add(doc.GetElement(equip));
                                     }
+                                    
                                 }
-                                catch { }
+                                catch { continue; }
 
                             }
                         }
@@ -509,15 +526,24 @@ namespace PipeTreeV4
                 try
                 {
 
+                    if (lastnode == null)
+                    {
+                        
+                        break;
+                    }
+                    else
+                    {
+                        nextelement = doc.GetElement(lastnode.NextOwnerId);
 
-                    nextelement = doc.GetElement(lastnode.NextOwnerId);
-                    Node newnode = null;
+                        Node newnode = null;
 
 
 
-                    newnode = new Node(doc, nextelement, lastnode.PipeSystemType, shortsystemname, mode);
-                    branch.Add(newnode); // Add the new node to the nodes list
-                                         // mainnodes.Add(branch); //
+                        newnode = new Node(doc, nextelement, lastnode.PipeSystemType, shortsystemname, mode);
+                        branch.Add(newnode); // Add the new node to the nodes list
+                                             // mainnodes.Add(branch); //
+                    }
+
 
 
                 }
@@ -671,10 +697,16 @@ namespace PipeTreeV4
                     }
                     List<Branch> manbranches = new List<Branch>();
                     List<Branch> manifoldbranches = new List<Branch>();
+
+                    if (lastnode.ElementId.IntegerValue==2894980)
+                    {
+                        lastnode = lastnode;
+                    }
                     //Отсюда ушел разбираться с коллекторами
                     if (lastnode.Reverse == false)
                     {
                         manifoldbranches = GetNewManifoldBranches(doc, lastnode, lastnode.PipeSystemType);
+                        lastnode.Reverse = true;
                     }
                     else
                     {
