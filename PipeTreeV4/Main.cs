@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.ComponentModel.Design;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -343,6 +344,18 @@ namespace PipeTreeV4
 
         public Branch GetTihelmanBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnode, List<Branch> mainnodes)
         {
+            FilteredWorksetCollector collector = new FilteredWorksetCollector(doc);
+            IList<Workset> worksets = collector.OfKind(WorksetKind.UserWorkset).ToWorksets();
+            WorksetId selected_workset_id=WorksetId.InvalidWorksetId;
+            
+            foreach (var workset in worksets)
+            {
+                if (workset.Name == "(30)_ОВ1_27")
+                {
+                    selected_workset_id = workset.Id;
+                }
+            }
+
             int tee_counter = 0;
             int equipment_counter = 0;
             Branch branch = new Branch();
@@ -351,6 +364,7 @@ namespace PipeTreeV4
             string longsystemname = string.Empty;
             bool mode = false;
             Element nextelement = null;
+            
             if (doc.GetElement(elementId) is Pipe)
             {
                 systemtype = ((doc.GetElement(elementId) as Pipe).MEPSystem as PipingSystem).SystemType;
@@ -417,12 +431,17 @@ namespace PipeTreeV4
                             {
                                 try
                                 {
-                                    if (doc.GetElement(equip).get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsValueString().Contains(longsystemname))
+                                    if (doc.GetElement(equip).get_Parameter(BuiltInParameter.ELEM_PARTITION_PARAM).AsInteger() !=selected_workset_id.IntegerValue)
+                                    {
+                                        continue;
+                                    }
+                                     else if (doc.GetElement(equip).get_Parameter(BuiltInParameter.RBS_SYSTEM_NAME_PARAM).AsValueString().Contains(longsystemname))
                                     {
                                         systemequipment.Add(doc.GetElement(equip));
                                     }
+                                    
                                 }
-                                catch { }
+                                catch { continue; }
 
                             }
                         }
@@ -436,28 +455,266 @@ namespace PipeTreeV4
             equipment_counter = systemequipment.Count();
             Node lastnode = null;
             Node secnode = null;
+            Node VCK1_Node = null;
+            Node VCK2_node = null;
+            Branch firstVCKBranch = new Branch();
+            Branch secondVCKBranch = new Branch();
+            List<Node> tees = new List<Node>();
             do
             {
 
                 lastnode = branch.Nodes.Last(); // Get the last added node
+                
 
                 
 
                 // secnode = lastnode;
+               try
+{
+    if (lastnode.Element is FamilyInstance)
+    {
+        tee_counter = branch.Nodes.Select(x => x).Where(y => y.IsTee == true).Count();
+        if (lastnode.Connectors.Count >= 4)
+        {
+            if (lastnode.Reverse == true)
+            {
+                var nexteelement = GetManifoldReverseBranch(doc, lastnode, lastnode.PipeSystemType);
+                var newnode = new Node(doc, doc.GetElement(nexteelement.ElementId), nexteelement.PipeSystemType, shortsystemname, mode);
+
+                branch.Add(newnode);
+                lastnode = newnode;
+
+            }
+        }
+
+        if (lastnode.Element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_MechanicalEquipment)
+        {
+
+            mode = true;
+            Node nxtnode = GetNextElemAfterEquipment(doc, lastnode);
+            branch.Add(nxtnode);
+            lastnode = nxtnode;
+
+
+        }
+        int c = equipment_counter - 1;
+
+        if (lastnode.IsTee) // да, тут выбрали тройник.
+        {
+
+            if (tee_counter == 1 && lastnode.IsTee)
+            {
+                var nextElId = lastnode.Connectors
+                .Where(y => y.IsSelected) // Filter to get only unselected connectors
+                .Select(x => x.NextOwnerId) // Select OwnerId
+                .FirstOrDefault();
+                Node vCK2_node = new Node(doc, doc.GetElement(nextElId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                var  nextnodeEl = lastnode.Connectors
+                .Where(y => !y.IsSelected) // Filter to get only unselected connectors
+                .Select(x => x.NextOwnerId) // Select OwnerId
+                .FirstOrDefault();
+                Node nextnode= new Node(doc, doc.GetElement(nextnodeEl), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                lastnode.IsSplitter = true;
+                lastnode.IsChecked = true;
+                lastnode = nextnode;
+                branch.Add(lastnode);
+                vCK2_node.IsChecked = true;
+                (secondVCKBranch, tees) = GetVCKBranch(doc, vCK2_node, false);
+
+            }
+            /*else if (tee_counter != 1 && lastnode.IsTee)
+            {
+                if (lastnode.ElementId.IntegerValue == 2898219)
+                {
+                    lastnode = lastnode;
+                }
+                var nextElId = lastnode.Connectors
+                .Where(y => !y.IsSelected) // Filter to get only unselected connectors
+                .Select(x => x.NextOwnerId) // Select OwnerId
+                .FirstOrDefault();
+                Node nextnode = new Node(doc, doc.GetElement(lastnode.ElementId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                nextnode.NextOwnerId = nextElId;
+                lastnode.IsSplitter = true;
+                *//*Node vcknode = new Node(doc, doc.GetElement(lastnode.NextOwnerId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                (firstVCKBranch, tees) = GetVCKBranch(doc, vcknode, true);*//*
+            }*/
+        }
+
+
+    }
+}
+catch
+{
+
+}
+                
+                    
+
+                  
+
+               
+
+
+                try
+                {
+
+                    if (lastnode == null)
+                    {
+                        
+                        break;
+                    }
+                    else
+                    {
+                        nextelement = doc.GetElement(lastnode.NextOwnerId);
+
+                        Node newnode = null;
+
+
+
+                        newnode = new Node(doc, nextelement, lastnode.PipeSystemType, shortsystemname, mode);
+                        branch.Add(newnode);
+                        // Add the new node to the nodes list
+                                             // mainnodes.Add(branch); //
+                    }
+
+                    
+
+                }
+                catch
+                {
+
+                    break;
+                }
+
+                if (lastnode == null)
+                { 
+                    branch.RemoveNull();
+                    break;
+                }
+            }
+           
+            while (lastnode.NextOwnerId != null);
+            branch.RemoveNull();
+            lastnode = branch.Nodes.Last();
+            foreach (var node in branch.Nodes)
+            {
+                
+                    if (node.PipeSystemType==PipeSystemType.SupplyHydronic)
+                    {
+                        if (node.IsTee)
+                        {
+                            if (!node.IsChecked)
+                            {
+                                tees.Add(node);
+                            }
+
+                        }
+                    }
+                   
+            }
+           /// var dddd = tees.Select(x => x).Where(x => x.ElementId.IntegerValue == 2897219).First();
+            
+            var splitnode = tees.Select(x => x).Where(x => x.IsTee).LastOrDefault();
+            if (splitnode!=null)
+            {
+                if (splitnode.ElementId.IntegerValue == 2898219)
+                {
+                    splitnode = splitnode;
+                }
+            }
+            
+            if (splitnode!=null && splitnode.Connectors.Count>1)
+            {
+                
+                var selectednode = splitnode.Connectors.Where(y => !y.IsSelected).Select(x => x).First();
+                Node vcknode = new Node(doc, doc.GetElement(selectednode.NextOwnerId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                (firstVCKBranch, tees) = GetVCKBranch(doc, vcknode, false);
+            }
+            
+
+
+            branch.AddRange(firstVCKBranch);
+            branch.AddRange(secondVCKBranch);
+
+            return branch;
+        }
+
+        private (Branch,List<Node>) GetVCKBranch(Autodesk.Revit.DB.Document doc,Node vCK_node, bool firstvck)
+        {
+            int counter = 0;
+            Branch branch = new Branch();
+            List<Node> tees = new List<Node>();
+            PipeSystemType systemtype;
+            string shortsystemname;
+            ElementId elementId = vCK_node.ElementId;
+            bool mode = false;
+            branch.Add(vCK_node);
+            if (doc.GetElement(elementId) is Pipe)
+            {
+                systemtype = ((doc.GetElement(elementId) as Pipe).MEPSystem as PipingSystem).SystemType;
+                shortsystemname = (doc.GetElement(elementId) as Pipe).LookupParameter("Сокращение для системы").AsString();
+                Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname, mode);
+                branch.Add(newnode);
+
+            }
+            else
+            {
+                shortsystemname = (doc.GetElement(elementId) as FamilyInstance).LookupParameter("Сокращение для системы").AsString();
+                var connectors = ((doc.GetElement(elementId) as FamilyInstance)).MEPModel.ConnectorManager.Connectors;
+                foreach (Connector connector in connectors)
+                {
+                    systemtype = connector.PipeSystemType;
+                    Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname, mode);
+                    branch.Add(newnode);
+                }
+            }
+            Node lastnode = null;
+            Node secnode = null;
+            do
+            {
+                lastnode = branch.Nodes.Last(); // Get the last added node
+
                 if (lastnode.Element is FamilyInstance)
                 {
-                    if (lastnode.ElementId.IntegerValue== 2896319)
+                    if (firstvck==false)
                     {
-                        lastnode = lastnode;
+                        if (lastnode.IsTee == true)
+                        {
+                            tees.Add(lastnode);
+                        }
                     }
-                    tee_counter = branch.Nodes.Select(x => x).Where(y => y.IsTee == true).Count();
+                    else
+                    {
+                        if (lastnode.IsTee == true)
+                        {
+                            tees.Add(lastnode);
+                        }
+                        if (lastnode.IsTee && lastnode.PipeSystemType == PipeSystemType.SupplyHydronic)
+                        {
+                            try
+                            {
+                                var nextnodeEl = lastnode.Connectors
+                                .Where(y => !y.IsSelected) // Filter to get only unselected connectors
+                                .Select(x => x.NextOwnerId) // Select OwnerId
+                                .FirstOrDefault();
+                                Node nextnode = new Node(doc, doc.GetElement(nextnodeEl), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                                lastnode = nextnode;
+                                branch.Add(lastnode);
+                            }
+
+                            catch { }
+
+
+                        }
+
+                    }
+                     
                     if (lastnode.Connectors.Count >= 4)
                     {
                         if (lastnode.Reverse == true)
                         {
                             var nexteelement = GetManifoldReverseBranch(doc, lastnode, lastnode.PipeSystemType);
                             var newnode = new Node(doc, doc.GetElement(nexteelement.ElementId), nexteelement.PipeSystemType, shortsystemname, mode);
-                            
                             branch.Add(newnode);
                             lastnode = newnode;
 
@@ -470,70 +727,34 @@ namespace PipeTreeV4
                         Node nxtnode = GetNextElemAfterEquipment(doc, lastnode);
                         branch.Add(nxtnode);
                         lastnode = nxtnode;
-
+                        
                     }
-                   
-                    if (tee_counter == 1 || tee_counter == equipment_counter - 2)
-                    {
-                        if (lastnode.IsTee)
-                        {
-                            var nextElId = lastnode.Connectors
-                        .Where(y => !y.IsSelected) // Filter to get only unselected connectors
-                        .Select(x => x.NextOwnerId) // Select OwnerId
-                        .FirstOrDefault();
-                            lastnode.NextOwnerId = nextElId;
 
-                            //ВОТ ЭТО ПОД КОММЕНТОМ ОШИБКА. Теперь находит нормально прибор ОЦК в периметралке
-                            /*Node nextnode = new Node(doc, doc.GetElement(lastnode.ElementId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
-                            nextnode.NextOwnerId = nextElId;
-                            lastnode = nextnode;
-                            branch.Add(nextnode);*/
-                        }
-
-                    }
+                    
 
                 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 
                 try
                 {
-
-
-                    nextelement = doc.GetElement(lastnode.NextOwnerId);
-                    Node newnode = null;
-
-
-
-                    newnode = new Node(doc, nextelement, lastnode.PipeSystemType, shortsystemname, mode);
+                    var nextElement = doc.GetElement(lastnode.NextOwnerId);
+                    Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname, mode);
                     branch.Add(newnode); // Add the new node to the nodes list
                                          // mainnodes.Add(branch); //
-
-
                 }
                 catch
                 {
-
                     break;
                 }
-
+                counter++;
             }
-            while (lastnode.NextOwnerId != null);
+            while (lastnode.NextOwnerId != null ||counter==1000);
 
 
-            return branch;
+            return (branch, tees);
         }
+
         public Branch GetNewBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnode, List<Branch> mainnodes)
         {
             bool mode = false;
@@ -566,18 +787,7 @@ namespace PipeTreeV4
                 lastnode = branch.Nodes.Last(); // Get the last added node
 
 
-                // secnode = lastnode;
-                /*if (lastnode.Connectors.Count >= 2)
-                {
-
-
-
-
-
-
-                    break;
-
-                }*/
+               
 
 
                 try
@@ -640,7 +850,12 @@ namespace PipeTreeV4
 
             do
             {
+               
                 lastnode = mainnode.Nodes.Last(); // Get the last added node
+                if (lastnode.ElementId.IntegerValue == 2894980)
+                {
+                    lastnode = lastnode;
+                }
                 PipeSystemType systemtype2;
                 string shortsystemname2;
                 if (doc.GetElement(elementId) is Pipe)
@@ -672,10 +887,13 @@ namespace PipeTreeV4
                     }
                     List<Branch> manbranches = new List<Branch>();
                     List<Branch> manifoldbranches = new List<Branch>();
+
+                   
                     //Отсюда ушел разбираться с коллекторами
                     if (lastnode.Reverse == false)
                     {
                         manifoldbranches = GetNewManifoldBranches(doc, lastnode, lastnode.PipeSystemType);
+                        lastnode.Reverse = true;
                     }
                     else
                     {
@@ -811,46 +1029,100 @@ namespace PipeTreeV4
 
             foreach (Connector connect in connectorSet)
             {
-                ConnectorSet nextconnectors = connect.AllRefs;
-                foreach (Connector nextconnect in nextconnectors)
+                if (pipeSystemType==PipeSystemType.ReturnHydronic)
                 {
-                    if (doc.GetElement(nextconnect.Owner.Id) is PipingSystem)
+                    if (connect.PipeSystemType==PipeSystemType.ReturnHydronic)
                     {
-                        continue;
-                    }
-
-                    else if (nextconnect.Owner.Id == lastnode.ElementId)
-                    {
-                        continue;
-                    }
-
-                    else if (nextconnectors.Size < 1)
-                    {
-                        continue;
-                    }
-                    else
-                    {
-                        if (nextconnect.Domain == Autodesk.Revit.DB.Domain.DomainHvac || nextconnect.Domain == Autodesk.Revit.DB.Domain.DomainPiping)
+                        if (connect.Direction==FlowDirectionType.Out)
                         {
-                            if (pipeSystemType == PipeSystemType.SupplyHydronic)
+                            ConnectorSet nextconnectors = connect.AllRefs;
+                            foreach (Connector nextconnect in nextconnectors)
                             {
-                                if (nextconnect.Direction == FlowDirectionType.Out)
+                                if (doc.GetElement(nextconnect.Owner.Id) is PipingSystem)
                                 {
-                                    nextnode = new Node(doc, doc.GetElement(nextconnect.Owner.Id), PipeSystemType.SupplyHydronic, lastnode.ShortSystemName, true);
+                                    continue;
+                                }
+
+                                else if (nextconnect.Owner.Id == lastnode.ElementId)
+                                {
+                                    continue;
+                                }
+
+                                else if (nextconnectors.Size < 1)
+                                {
+                                    continue;
+                                }
+                                else
+                                {
+                                    if (nextconnect.Domain == Autodesk.Revit.DB.Domain.DomainHvac || nextconnect.Domain == Autodesk.Revit.DB.Domain.DomainPiping)
+                                    {
+                                        
+
+                                         if (pipeSystemType == PipeSystemType.ReturnHydronic)
+                                        {
+                                            if (nextconnect.Direction == FlowDirectionType.In)
+                                            {
+                                                 nextnode = new Node(doc, doc.GetElement(nextconnect.Owner.Id), PipeSystemType.ReturnHydronic, lastnode.ShortSystemName, true);
+
+                                            }
+
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        
+                    }
+                    else if (pipeSystemType == PipeSystemType.SupplyHydronic)
+                    {
+                        if (connect.PipeSystemType == PipeSystemType.SupplyHydronic)
+                        {
+                            if (connect.Direction == FlowDirectionType.In)
+                            {
+                                ConnectorSet nextconnectors = connect.AllRefs;
+                                foreach (Connector nextconnect in nextconnectors)
+                                {
+                                    if (doc.GetElement(nextconnect.Owner.Id) is PipingSystem)
+                                    {
+                                        continue;
+                                    }
+
+                                    else if (nextconnect.Owner.Id == lastnode.ElementId)
+                                    {
+                                        continue;
+                                    }
+
+                                    else if (nextconnectors.Size < 1)
+                                    {
+                                        continue;
+                                    }
+                                    else
+                                    {
+                                        if (nextconnect.Domain == Autodesk.Revit.DB.Domain.DomainHvac || nextconnect.Domain == Autodesk.Revit.DB.Domain.DomainPiping)
+                                        {
+
+                                            if (pipeSystemType == PipeSystemType.SupplyHydronic)
+                                            {
+                                                if (nextconnect.Direction == FlowDirectionType.Out)
+                                                {
+                                                    nextnode = new Node(doc, doc.GetElement(nextconnect.Owner.Id), PipeSystemType.SupplyHydronic, lastnode.ShortSystemName, true);
+
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
 
-                            else if (pipeSystemType == PipeSystemType.ReturnHydronic)
-                            {
-                                if (nextconnect.Direction == FlowDirectionType.In)
-                                {
-                                    nextnode = new Node(doc, doc.GetElement(nextconnect.Owner.Id), PipeSystemType.ReturnHydronic, lastnode.ShortSystemName, true);
-                                }
 
-                            }
                         }
                     }
                 }
+
+                
+                
+
 
             }
             return nextnode;

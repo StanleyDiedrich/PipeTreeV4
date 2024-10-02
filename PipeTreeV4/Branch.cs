@@ -27,7 +27,13 @@ namespace PipeTreeV4
         {
             Nodes.Add(node);
         }
-
+        public void AddRange(Branch branch)
+        {
+            foreach (var node in branch.Nodes)
+            {
+                Nodes.Add(node);
+            }
+        }
         public List<Node> GetNodes ()
         {
             return Nodes;
@@ -79,8 +85,17 @@ namespace PipeTreeV4
                     {
                         try
                         {
-                            double dpressure = (element as Pipe).LookupParameter("Падение давления").AsDouble();
-                            pressure += dpressure;
+                            if ((element as Pipe).LookupParameter("Падение давления").AsDouble()!=null)
+                            {
+                                double dpressure = (element as Pipe).LookupParameter("Падение давления").AsDouble();
+                                pressure += dpressure;
+                            }
+                            else if ((element as Pipe).LookupParameter("Рабочее давление").AsDouble() != null)
+                            {
+                                double dpressure = (element as Pipe).LookupParameter("Рабочее давление").AsDouble();
+                                pressure += dpressure;
+                            }
+                            
                         }
                         catch
                         {
