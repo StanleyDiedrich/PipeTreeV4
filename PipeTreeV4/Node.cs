@@ -30,9 +30,12 @@ namespace PipeTreeV4
         public bool IsTee { get; set; }
         public bool IsElbow { get; set; }
         public bool IsSelected { get; set; }
+        public bool IsChecked { get; set; }
+        public bool IsSplitter { get; set; }
 
         public bool IsOCK { get; set; }
         public bool Reverse { get; set; }
+
 
         public Node (Autodesk.Revit.DB.Document doc, Element element, PipeSystemType pipeSystemType, string shortsystemName, bool reverse)
         {

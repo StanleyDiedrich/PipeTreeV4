@@ -27,7 +27,13 @@ namespace PipeTreeV4
         {
             Nodes.Add(node);
         }
-
+        public void AddRange(Branch branch)
+        {
+            foreach (var node in branch.Nodes)
+            {
+                Nodes.Add(node);
+            }
+        }
         public List<Node> GetNodes ()
         {
             return Nodes;
