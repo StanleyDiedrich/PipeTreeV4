@@ -469,84 +469,84 @@ namespace PipeTreeV4
                 
 
                 // secnode = lastnode;
-                try
+               try
+{
+    if (lastnode.Element is FamilyInstance)
+    {
+        tee_counter = branch.Nodes.Select(x => x).Where(y => y.IsTee == true).Count();
+        if (lastnode.Connectors.Count >= 4)
+        {
+            if (lastnode.Reverse == true)
+            {
+                var nexteelement = GetManifoldReverseBranch(doc, lastnode, lastnode.PipeSystemType);
+                var newnode = new Node(doc, doc.GetElement(nexteelement.ElementId), nexteelement.PipeSystemType, shortsystemname, mode);
+
+                branch.Add(newnode);
+                lastnode = newnode;
+
+            }
+        }
+
+        if (lastnode.Element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_MechanicalEquipment)
+        {
+
+            mode = true;
+            Node nxtnode = GetNextElemAfterEquipment(doc, lastnode);
+            branch.Add(nxtnode);
+            lastnode = nxtnode;
+
+
+        }
+        int c = equipment_counter - 1;
+
+        if (lastnode.IsTee) // да, тут выбрали тройник.
+        {
+
+            if (tee_counter == 1 && lastnode.IsTee)
+            {
+                var nextElId = lastnode.Connectors
+                .Where(y => y.IsSelected) // Filter to get only unselected connectors
+                .Select(x => x.NextOwnerId) // Select OwnerId
+                .FirstOrDefault();
+                Node vCK2_node = new Node(doc, doc.GetElement(nextElId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                var  nextnodeEl = lastnode.Connectors
+                .Where(y => !y.IsSelected) // Filter to get only unselected connectors
+                .Select(x => x.NextOwnerId) // Select OwnerId
+                .FirstOrDefault();
+                Node nextnode= new Node(doc, doc.GetElement(nextnodeEl), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                lastnode.IsSplitter = true;
+                lastnode.IsChecked = true;
+                lastnode = nextnode;
+                branch.Add(lastnode);
+                vCK2_node.IsChecked = true;
+                (secondVCKBranch, tees) = GetVCKBranch(doc, vCK2_node, false);
+
+            }
+            /*else if (tee_counter != 1 && lastnode.IsTee)
+            {
+                if (lastnode.ElementId.IntegerValue == 2898219)
                 {
-                    if (lastnode.Element is FamilyInstance)
-                    {
-                        tee_counter = branch.Nodes.Select(x => x).Where(y => y.IsTee == true).Count();
-                        if (lastnode.Connectors.Count >= 4)
-                        {
-                            if (lastnode.Reverse == true)
-                            {
-                                var nexteelement = GetManifoldReverseBranch(doc, lastnode, lastnode.PipeSystemType);
-                                var newnode = new Node(doc, doc.GetElement(nexteelement.ElementId), nexteelement.PipeSystemType, shortsystemname, mode);
-
-                                branch.Add(newnode);
-                                lastnode = newnode;
-
-                            }
-                        }
-
-                        if (lastnode.Element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_MechanicalEquipment)
-                        {
-
-                            mode = true;
-                            Node nxtnode = GetNextElemAfterEquipment(doc, lastnode);
-                            branch.Add(nxtnode);
-                            lastnode = nxtnode;
-
-
-                        }
-                        int c = equipment_counter - 1;
-
-                        if (lastnode.IsTee) // да, тут выбрали тройник.
-                        {
-
-                            if (tee_counter == 1 && lastnode.IsTee)
-                            {
-                                var nextElId = lastnode.Connectors
-                                .Where(y => y.IsSelected) // Filter to get only unselected connectors
-                                .Select(x => x.NextOwnerId) // Select OwnerId
-                                .FirstOrDefault();
-                                Node vCK2_node = new Node(doc, doc.GetElement(nextElId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
-                                var  nextnodeEl = lastnode.Connectors
-                                .Where(y => !y.IsSelected) // Filter to get only unselected connectors
-                                .Select(x => x.NextOwnerId) // Select OwnerId
-                                .FirstOrDefault();
-                                Node nextnode= new Node(doc, doc.GetElement(nextnodeEl), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
-                                lastnode.IsSplitter = true;
-                                lastnode.IsChecked = true;
-                                lastnode = nextnode;
-                                branch.Add(lastnode);
-                                vCK2_node.IsChecked = true;
-                                (secondVCKBranch, tees) = GetVCKBranch(doc, vCK2_node, false);
-
-                            }
-                            /*else if (tee_counter != 1 && lastnode.IsTee)
-                            {
-                                if (lastnode.ElementId.IntegerValue == 2898219)
-                                {
-                                    lastnode = lastnode;
-                                }
-                                var nextElId = lastnode.Connectors
-                                .Where(y => !y.IsSelected) // Filter to get only unselected connectors
-                                .Select(x => x.NextOwnerId) // Select OwnerId
-                                .FirstOrDefault();
-                                Node nextnode = new Node(doc, doc.GetElement(lastnode.ElementId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
-                                nextnode.NextOwnerId = nextElId;
-                                lastnode.IsSplitter = true;
-                                *//*Node vcknode = new Node(doc, doc.GetElement(lastnode.NextOwnerId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
-                                (firstVCKBranch, tees) = GetVCKBranch(doc, vcknode, true);*//*
-                            }*/
-                        }
-
-
-                    }
+                    lastnode = lastnode;
                 }
-                catch
-                {
+                var nextElId = lastnode.Connectors
+                .Where(y => !y.IsSelected) // Filter to get only unselected connectors
+                .Select(x => x.NextOwnerId) // Select OwnerId
+                .FirstOrDefault();
+                Node nextnode = new Node(doc, doc.GetElement(lastnode.ElementId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                nextnode.NextOwnerId = nextElId;
+                lastnode.IsSplitter = true;
+                *//*Node vcknode = new Node(doc, doc.GetElement(lastnode.NextOwnerId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                (firstVCKBranch, tees) = GetVCKBranch(doc, vcknode, true);*//*
+            }*/
+        }
 
-                }
+
+    }
+}
+catch
+{
+
+}
                 
                     
 
