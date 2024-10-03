@@ -319,7 +319,7 @@ namespace PipeTreeV4
                                         newnode1.PipeSystemType = PipeSystemType.ReturnHydronic;
                                         newnode1.Reverse = true;
                                         nxtnode = newnode1;
-
+                                        return nxtnode;
 
                                     }
                                     else
@@ -330,7 +330,7 @@ namespace PipeTreeV4
                                         newnode1.PipeSystemType = PipeSystemType.ReturnHydronic;
                                         newnode1.Reverse = true;
                                         nxtnode = newnode1;
-
+                                        return nxtnode;
                                     }
 
                                 }
@@ -628,6 +628,7 @@ catch
                 
                 var selectednode = splitnode.Connectors.Where(y => !y.IsSelected).Select(x => x).First();
                 Node vcknode = new Node(doc, doc.GetElement(selectednode.NextOwnerId), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                vcknode.IsChecked = true;
                 (firstVCKBranch, tees) = GetVCKBranch(doc, vcknode, false);
             }
             
@@ -635,8 +636,130 @@ catch
 
             branch.AddRange(firstVCKBranch);
             branch.AddRange(secondVCKBranch);
+            branch.RemoveNull();
+            List<Node> foundedtees = new List<Node>();
+            foreach(var node in branch.Nodes)
+            {
+                if (node.IsTee && node!=null)
+                {
+                    if (node.PipeSystemType==PipeSystemType.SupplyHydronic && node.ShortSystemName==lastnode.ShortSystemName)
+                    {
+                        if (node.IsChecked==false)
+                        {
+                            foundedtees.Add(node);
+                        }
+                    }
+                }
+            }
+
+            foreach (var node in foundedtees)
+            {
+                Branch smallbranch = GetSmallBranch(doc, node);
+                branch.AddRange(smallbranch);
+            }
 
             return branch;
+        }
+
+        private Branch GetSmallBranch(Document doc, Node node)
+        {
+            Branch branch = new Branch();
+            PipeSystemType systemtype;
+            string shortsystemname;
+            ElementId elementId = node.Connectors.Where(y => !y.IsSelected).Select(x => x.NextOwnerId).First();
+
+            bool mode=false;
+            
+
+            if (doc.GetElement(elementId) is Pipe)
+            {
+                systemtype = ((doc.GetElement(elementId) as Pipe).MEPSystem as PipingSystem).SystemType;
+                shortsystemname = (doc.GetElement(elementId) as Pipe).LookupParameter("Сокращение для системы").AsString();
+                Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname, mode);
+                branch.Add(newnode);
+
+            }
+            else
+            {
+                shortsystemname = (doc.GetElement(elementId) as FamilyInstance).LookupParameter("Сокращение для системы").AsString();
+                var connectors = ((doc.GetElement(elementId) as FamilyInstance)).MEPModel.ConnectorManager.Connectors;
+                foreach (Connector connector in connectors)
+                {
+                    systemtype = connector.PipeSystemType;
+                    Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname, mode);
+                    branch.Add(newnode);
+                }
+            }
+            Node lastnode = null;
+            Node secnode = null;
+
+            do
+            {
+
+                lastnode = branch.Nodes.Last();
+                
+                if (lastnode.Element is FamilyInstance)
+                {
+                    if (lastnode.Element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_MechanicalEquipment)
+                    {
+                        mode = true;
+                        Node nxtnode = GetNextElemAfterEquipment(doc, lastnode);
+                        branch.Add(nxtnode);
+                        lastnode = nxtnode;
+                        
+
+                    }
+                    else
+                    {
+                        try
+                        {
+                            var nextElement = doc.GetElement(lastnode.NextOwnerId);
+                            Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname, mode);
+                            branch.Add(newnode); // Add the new node to the nodes list
+                                                 // mainnodes.Add(branch); //
+                            //lastnode = newnode;
+                        }
+                        catch
+                        {
+                            break;
+                        }
+                    }
+                }
+                else
+                {
+                    try
+                    {
+                        var nextElement = doc.GetElement(lastnode.NextOwnerId);
+                        Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname, mode);
+                        branch.Add(newnode); // Add the new node to the nodes list
+                                             // mainnodes.Add(branch); //
+                        //lastnode = newnode;
+                    }
+                    catch
+                    {
+                        break;
+                    }
+                }
+                try
+                {
+                    var nextElement = doc.GetElement(lastnode.NextOwnerId);
+                    Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname, mode);
+                    branch.Add(newnode); // Add the new node to the nodes list
+                                         // mainnodes.Add(branch); //
+                                         //lastnode = newnode;
+                }
+                catch
+                {
+                    break;
+                }
+                if (lastnode == null)
+                { break; }
+
+            }
+            
+            while (lastnode.IsTee==true || lastnode!=null);
+            return branch;
+
         }
 
         private (Branch,List<Node>) GetVCKBranch(Autodesk.Revit.DB.Document doc,Node vCK_node, bool firstvck)
