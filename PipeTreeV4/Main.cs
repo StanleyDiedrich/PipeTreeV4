@@ -319,7 +319,7 @@ namespace PipeTreeV4
                                         newnode1.PipeSystemType = PipeSystemType.ReturnHydronic;
                                         newnode1.Reverse = true;
                                         nxtnode = newnode1;
-                                        return nxtnode;
+                                       
 
                                     }
                                     else
@@ -330,7 +330,7 @@ namespace PipeTreeV4
                                         newnode1.PipeSystemType = PipeSystemType.ReturnHydronic;
                                         newnode1.Reverse = true;
                                         nxtnode = newnode1;
-                                        return nxtnode;
+                                        
                                     }
 
                                 }
@@ -631,20 +631,20 @@ catch
                 vcknode.IsChecked = true;
                 (firstVCKBranch, tees) = GetVCKBranch(doc, vcknode, false);
             }
-            
+
 
 
             branch.AddRange(firstVCKBranch);
             branch.AddRange(secondVCKBranch);
             branch.RemoveNull();
             List<Node> foundedtees = new List<Node>();
-            foreach(var node in branch.Nodes)
+            foreach (var node in branch.Nodes)
             {
-                if (node.IsTee && node!=null)
+                if (node.IsTee && node != null)
                 {
-                    if (node.PipeSystemType==PipeSystemType.SupplyHydronic && node.ShortSystemName==lastnode.ShortSystemName)
+                    if (node.PipeSystemType == PipeSystemType.SupplyHydronic && node.ShortSystemName == lastnode.ShortSystemName)
                     {
-                        if (node.IsChecked==false)
+                        if (node.IsChecked == false)
                         {
                             foundedtees.Add(node);
                         }
@@ -654,15 +654,33 @@ catch
 
             foreach (var node in foundedtees)
             {
-                Branch smallbranch = GetSmallBranch(doc, node);
+                Branch smallbranch = GetSmallBranch(doc, node, firstVCKBranch,secondVCKBranch);
                 branch.AddRange(smallbranch);
             }
 
             return branch;
         }
 
-        private Branch GetSmallBranch(Document doc, Node node)
+        private Branch GetSmallBranch(Document doc, Node node,Branch firstVckBranch, Branch secondVCKBranch)
         {
+            List<ElementId> checkedNodesIds = new List<ElementId>();
+            foreach(var checknode in firstVckBranch.Nodes)
+            {
+                if (checknode!=null)
+                {
+                    checkedNodesIds.Add(checknode.ElementId);
+                }
+                
+            }
+            List<ElementId> secondVckBranchIds = new List<ElementId>();
+            foreach (var checknode in secondVCKBranch.Nodes)
+            {
+                if (checknode != null)
+                {
+                    checkedNodesIds.Add(checknode.ElementId);
+                }
+            }
+
             Branch branch = new Branch();
             PipeSystemType systemtype;
             string shortsystemname;
@@ -755,8 +773,15 @@ catch
                 if (lastnode == null)
                 { break; }
 
+                if (checkedNodesIds.Contains(lastnode.ElementId))
+                {
+                    break;
+                }
+                
+
             }
             
+
             while (lastnode.IsTee==true || lastnode!=null);
             return branch;
 
