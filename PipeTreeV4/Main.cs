@@ -1679,6 +1679,7 @@ catch
             List<Branch> mainnodes = new List<Branch>(); // тут стояк 
             List<Branch> secondarynodes = new List<Branch>();
             List<Branch> secondarySupernodes = new List<Branch>();
+            List<Branch> terciarynodes = new List<Branch>();
             List<Branch> branches = new List<Branch>();
             Branch additionalNodes = new Branch();
             Branch secAdditionalNodes = new Branch();
@@ -1706,6 +1707,110 @@ catch
                     }
                 }
             }
+
+            var totalIds = new HashSet<int>();
+            foreach (var el in additionalNodes.Nodes)
+            {
+                el.IsOCK = false;
+            }
+            MEPSystem mepSystem = null;
+            Node newStartElement = mainnodes.Last().Nodes[0];
+            if ( newStartElement is FamilyInstance)
+            {
+                var elementId = newStartElement.Connectors.Last().OwnerId;
+
+                ConnectorSet sysElemConnectors = ((doc.GetElement(elementId) as FamilyInstance).MEPModel).ConnectorManager.Connectors;
+                foreach (Connector sysConnector in sysElemConnectors)
+                {
+                    mepSystem = sysConnector.MEPSystem;
+                }
+            }
+            else
+            {
+                var elementId = newStartElement.Connectors.Last().OwnerId;
+
+                mepSystem = ((doc.GetElement(elementId) as Pipe).MEPSystem);
+            }
+            
+
+            
+
+            var sysElements = (mepSystem as PipingSystem).PipingNetwork;
+            var shortsysname = (doc.GetElement(mepSystem.GetTypeId())as MEPSystemType).Abbreviation;
+            List<Node> starttees = new List<Node>();
+            foreach (Element sysElem in sysElements)
+            {
+                
+                    Node newadditionalnode = new Node(doc, sysElem, PipeSystemType.SupplyHydronic, shortsysname, false);
+                    if (newadditionalnode.IsTee && !newadditionalnode.IsOCK )
+                    {
+                        starttees.Add(newadditionalnode);
+                    }
+                
+            }
+          
+
+            foreach (var startelement in starttees)
+            {
+                
+                foreach (var nextstartelement in startelement.Connectors )
+                {
+                    
+                    var nextStartelement = nextstartelement.NextOwnerId;
+                    (secondarynodes, secAdditionalNodes) = GetTihelmanBranches(doc, nextStartelement);
+
+                    foreach (var secondarynode in secondarynodes)
+                    {
+                        Branch branch = new Branch();
+                        foreach (var node in secondarynode.Nodes)
+                        {
+                            node.IsOCK = false;
+                            if (totalIds.Add(node.ElementId.IntegerValue))
+                            {
+                                branch.Add(node);
+                            }
+                        }
+                        // Добавляем только уникальные элементы
+                        if (branch.Nodes.Count != 0)
+                        {
+                            secondarySupernodes.Add(branch);
+                        }
+                        else
+                        { continue; }
+                    }
+                }
+               
+            }
+                /*foreach (var startelement in additionalNodes.Nodes)
+                {
+
+                        var nextStartelement = startelement.ElementId;
+                        (secondarynodes, secAdditionalNodes) = GetTihelmanBranches(doc, nextStartelement);
+
+                        foreach (var secondarynode in secondarynodes)
+                        {
+                            Branch branch = new Branch();
+                            foreach (var node in secondarynode.Nodes)
+                            {
+                                node.IsOCK = false;
+                                if (totalIds.Add(node.ElementId.IntegerValue))
+                                {
+                                    branch.Add(node);
+                                }
+                            }
+                            // Добавляем только уникальные элементы
+                            if (branch.Nodes.Count != 0)
+                            {
+                                secondarySupernodes.Add(branch);
+                            }
+                            else
+                            { continue; }
+
+                        }
+                }*/
+
+
+                mainnodes.AddRange(secondarySupernodes);
 
             return (mainnodes);
         }
@@ -1820,8 +1925,8 @@ catch
             string csvcontent2 = GetContent(doc, mainnodes);
             //SaveFile(csvcontent);
             //SelectBranches(uIDocument, mainnodes);
-            SelectNodes(uIDocument, mainnodes);
-            //SelectAllNodes(uIDocument, mainnodes);
+            //SelectNodes(uIDocument, mainnodes);
+            SelectAllNodes(uIDocument, mainnodes);
             //SelectAdditionalNodes(uIDocument, mainnodes);
 
 
