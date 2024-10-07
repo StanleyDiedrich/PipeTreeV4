@@ -364,6 +364,9 @@ namespace PipeTreeV4
             string longsystemname = string.Empty;
             bool mode = false;
             Element nextelement = null;
+            MEPSystem mepsystem = null;
+            ElementSet elementSet;
+            List<Element> sysfoundedtees = new List<Element>();
             
             if (doc.GetElement(elementId) is Pipe)
             {
@@ -381,6 +384,28 @@ namespace PipeTreeV4
                 }
                 Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname, mode);
                 branch.Add(newnode);
+                mepsystem = (doc.GetElement(elementId) as Pipe).MEPSystem;
+                elementSet = (mepsystem as PipingSystem).PipingNetwork;
+                foreach (Element element in elementSet)
+                {
+                    if (element != null)
+                    {
+                        if (element is FamilyInstance)
+                        {
+                            FamilyInstance fI = element as FamilyInstance;
+                            MEPModel mepmodel = fI.MEPModel;
+                            if (element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_PipeFitting)
+                            {
+                                if ((mepmodel as MechanicalFitting).PartType == PartType.Tee)
+                                {
+                                    sysfoundedtees.Add(element);
+                                }
+                            }
+
+                        }
+                    }
+                }
+
 
             }
             else
@@ -402,15 +427,40 @@ namespace PipeTreeV4
                 {
                     longsystemname = longsystemname;
                 }
-
+                Connector selectedconnector = null;
                 var connectors = ((doc.GetElement(elementId) as FamilyInstance)).MEPModel.ConnectorManager.Connectors;
                 foreach (Connector connector in connectors)
                 {
+
                     systemtype = connector.PipeSystemType;
                     Node newnode = new Node(doc, doc.GetElement(elementId), systemtype, shortsystemname, mode);
 
                     branch.Add(newnode);
+                    selectedconnector = connector;
                 }
+                
+                mepsystem = selectedconnector.MEPSystem;
+                elementSet = (mepsystem as PipingSystem).PipingNetwork;
+                foreach (Element element in elementSet)
+                {
+                    if (element != null)
+                    {
+                        if (element is FamilyInstance)
+                        {
+                            FamilyInstance fI = element as FamilyInstance;
+                            MEPModel mepmodel = fI.MEPModel;
+                            if (element.Category.Id.IntegerValue == (int)BuiltInCategory.OST_PipeFitting)
+                            {
+                                if ((mepmodel as MechanicalFitting).PartType == PartType.Tee)
+                                {
+                                    sysfoundedtees.Add(element);
+                                }
+                            }
+
+                        }
+                    }
+                }
+
             }
 
             var equipment = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_MechanicalEquipment).WhereElementIsNotElementType().ToElementIds();
