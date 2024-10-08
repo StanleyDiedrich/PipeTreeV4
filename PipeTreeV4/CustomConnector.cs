@@ -18,6 +18,7 @@ namespace PipeTreeV4
         public ElementId NextOwnerId { get; set; }
         public ElementId Neighbourg { get; set; }
         public double  Flow { get; set; }
+        public double Coefficient { get; set; }
         public bool IsSelected { get; set; }
 
         public double Diameter { get; set; }

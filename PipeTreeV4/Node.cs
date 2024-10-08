@@ -35,6 +35,7 @@ namespace PipeTreeV4
 
         public bool IsOCK { get; set; }
         public bool Reverse { get; set; }
+        public int TeeNumber { get; set; }
 
 
         public Node (Autodesk.Revit.DB.Document doc, Element element, PipeSystemType pipeSystemType, string shortsystemName, bool reverse)
@@ -136,6 +137,7 @@ namespace PipeTreeV4
                                                 custom.DirectionType = FlowDirectionType.In;
                                                 custom.NextOwnerId = connect.Owner.Id;
                                                 custom.Diameter = connect.Radius * 2;
+                                                custom.Coefficient = connect.Coefficient;
                                                 custom.PressureDrop = connect.PressureDrop; // Вот это добавлено в версии 4.1
                                                 NextOwnerId = custom.NextOwnerId;
 
@@ -151,6 +153,7 @@ namespace PipeTreeV4
                                                 custom.DirectionType = FlowDirectionType.Out;
                                                 custom.NextOwnerId = connect.Owner.Id;
                                                 custom.Diameter = connect.Radius * 2;
+                                                custom.Coefficient = connect.Coefficient;
                                                 custom.PressureDrop = connect.PressureDrop; // Вот это добавлено в версии 4.1
                                                 NextOwnerId = custom.NextOwnerId;
 
@@ -171,6 +174,7 @@ namespace PipeTreeV4
                                                 custom.NextOwnerId = connect.Owner.Id;
                                                 NextOwnerId = custom.NextOwnerId;
                                                 custom.Diameter = connect.Radius * 2;
+                                                custom.Coefficient = connect.Coefficient;
                                                 custom.PressureDrop = connect.PressureDrop; // Вот это добавлено в версии 4.1
                                                 customConnectors.Add(custom);
                                             }
@@ -185,6 +189,7 @@ namespace PipeTreeV4
                                                 custom.NextOwnerId = connect.Owner.Id;
                                                 NextOwnerId = custom.NextOwnerId;
                                                 custom.Diameter = connect.Radius * 2;
+                                                custom.Coefficient = connect.Coefficient;
                                                 custom.PressureDrop = connect.PressureDrop; // Вот это добавлено в версии 4.1
                                                 customConnectors.Add(custom);
                                             }
@@ -248,6 +253,7 @@ namespace PipeTreeV4
                                                 custom.DirectionType = FlowDirectionType.In;
                                                 custom.NextOwnerId = connect.Owner.Id;
                                                 NextOwnerId = custom.NextOwnerId;
+                                                custom.Coefficient = connect.Coefficient;
 
                                                 Connectors.Add(custom);
                                             }
@@ -261,6 +267,7 @@ namespace PipeTreeV4
                                                 custom.Domain = Domain.DomainPiping;
                                                 custom.DirectionType = FlowDirectionType.Out;
                                                 custom.NextOwnerId = connect.Owner.Id;
+                                                custom.Coefficient = connect.Coefficient;
                                                 NextOwnerId = custom.NextOwnerId;
                                                 Connectors.Add(custom);
                                             }
@@ -277,6 +284,7 @@ namespace PipeTreeV4
                                                 custom.Domain = Domain.DomainPiping;
                                                 custom.DirectionType = FlowDirectionType.Out;
                                                 custom.NextOwnerId = connect.Owner.Id;
+                                                custom.Coefficient = connect.Coefficient;
                                                 NextOwnerId = custom.NextOwnerId;
 
                                                 Connectors.Add(custom);
@@ -292,6 +300,7 @@ namespace PipeTreeV4
                                                 custom.DirectionType = FlowDirectionType.In;
                                                 custom.NextOwnerId = connect.Owner.Id;
                                                 NextOwnerId = custom.NextOwnerId;
+                                                custom.Coefficient = connect.Coefficient;
                                                 Connectors.Add(custom);
                                             }
 
@@ -319,32 +328,56 @@ namespace PipeTreeV4
              {
                  custom.IsSelected = false;
              }*/
-            double maxvolume = double.MinValue;
-            double maxpressure = double.MinValue;
-            CustomConnector selectedconnector = null;
+            double maxVolume = double.MinValue;
+            double maxCoefficient = double.MinValue;
+            CustomConnector selectedConnector = null;
+
+            // Сначала ищем максимальный расход и учитываем, сколько коннекторов его имеют
+            List<CustomConnector> connectorsWithMaxVolume = new List<CustomConnector>();
+
             foreach (CustomConnector customConnector in Connectors)
             {
-                double pressure = customConnector.PressureDrop;
                 double flow = customConnector.Flow;
-                if (pressure==0)
-                {
-                    if (flow > maxvolume)
-                    {
-                        maxvolume = flow;
-                        selectedconnector = customConnector;
 
+                // Если нашли больший расход, обновляем список и значение максимального расхода
+                if (flow > maxVolume)
+                {
+                    maxVolume = flow;
+                    connectorsWithMaxVolume.Clear();
+                    connectorsWithMaxVolume.Add(customConnector);
+                }
+                // Если расход равен текущему максимальному, добавляем коннектор в список
+                else if (flow == maxVolume)
+                {
+                    connectorsWithMaxVolume.Add(customConnector);
+                }
+            }
+
+            // Если есть более одного коннектора с максимальным расходом, осуществляем проверку по коэффициенту
+            if (connectorsWithMaxVolume.Count > 1)
+            {
+                // Сбрасываем максимальный коэффициент для новой проверки
+                foreach (var connector in connectorsWithMaxVolume)
+                {
+                    double coeff = connector.Coefficient;
+
+                    // Проверяем, если текущий коэффициент больше максимального
+                    if (coeff > maxCoefficient)
+                    {
+                        maxCoefficient = coeff;
+                        selectedConnector = connector;
                     }
                 }
-                else
-                {
-                    if (pressure > maxpressure)
-                    {
-                        maxpressure = pressure;
-                        selectedconnector = customConnector;
+            }
+            else if (connectorsWithMaxVolume.Count == 1)
+            {
+                // Если только один коннектор с максимальным расходом, выбираем его
+                selectedConnector = connectorsWithMaxVolume[0];
+            }
 
-                    }
-                }
-                
+            if (selectedConnector!=null)
+            {
+                selectedConnector.IsSelected = true;
             }
 
 
@@ -358,13 +391,13 @@ namespace PipeTreeV4
 
                 }
             }*/
-            if (selectedconnector != null)
+            /*if (selectedconnector != null)
             {
                 selectedconnector.IsSelected = true;
                 NextOwnerId = selectedconnector.NextOwnerId;
 
                 //NextOwnerId = selectedconnector.Neighbourg;
-            }
+            }*/
 
         }
 
