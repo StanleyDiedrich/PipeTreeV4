@@ -2180,10 +2180,10 @@ namespace PipeTreeV4
             //List<Branch> mainnodes = AlgorithmQuartierCollectorsAndRayPipes(doc, startelements);
             List<Branch> mainnodes = new List<Branch>();
 
-            string csvcontent = GetContent(doc, mainnodes);
+            //string csvcontent = GetContent(doc, mainnodes);
             //SaveFile(csvcontent);
             //SelectBranches(uIDocument, mainnodes);
-            SelectNodes(uIDocument, mainnodes);
+            //SelectNodes(uIDocument, mainnodes);
             //SelectAllNodes(uIDocument, mainnodes);
             //SelectAdditionalNodes(uIDocument, mainnodes);
 
@@ -2205,6 +2205,8 @@ namespace PipeTreeV4
 
                     case 1:
                         mainnodes = AlgorithmFloorCollectorAndTihelman(doc, startelements);
+                        string csvcontent = GetContent(doc, mainnodes);
+                        SaveFile(csvcontent);
                         break;  // Обязательно добавляем break для правильного выполнения
 
                     default:  // Обработка случая, если mode не совпадает ни с одним из вышеуказанных
@@ -2215,11 +2217,11 @@ namespace PipeTreeV4
 
 
 
-            string csvcontent2 = GetContent(doc, mainnodes);
+           // string csvcontent2 = GetContent(doc, mainnodes);
             //SaveFile(csvcontent);
             //SelectBranches(uIDocument, mainnodes);
             //SelectNodes(uIDocument, mainnodes);
-            SelectAllNodes(uIDocument, mainnodes);
+            //SelectAllNodes(uIDocument, mainnodes);
             //SelectAdditionalNodes(uIDocument, mainnodes);
 
 
