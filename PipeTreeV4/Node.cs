@@ -38,7 +38,7 @@ namespace PipeTreeV4
         public int TeeNumber { get; set; }
 
 
-        public Node (Autodesk.Revit.DB.Document doc, Element element, PipeSystemType pipeSystemType, string shortsystemName, bool reverse)
+        public Node(Autodesk.Revit.DB.Document doc, Element element, PipeSystemType pipeSystemType, string shortsystemName, bool reverse)
         {
             Element = element;
             ElementId = Element.Id;
@@ -47,7 +47,7 @@ namespace PipeTreeV4
             Reverse = reverse;
 
 
-           
+
             ConnectorSet connectorSet = null;
             try
             {
@@ -69,7 +69,7 @@ namespace PipeTreeV4
                     connectorSet = mepModel.ConnectorManager.Connectors;
                     try
                     {
-                        if ((mepModel as MechanicalFitting)==null)
+                        if ((mepModel as MechanicalFitting) == null)
                         {
 
                         }
@@ -84,35 +84,35 @@ namespace PipeTreeV4
                                 IsTee = true;
                             }
                         }
-                        
+
                     }
                     catch
                     {
-                        
+
                     }
-                   
+
                 }
                 List<List<CustomConnector>> branches = new List<List<CustomConnector>>();
-                if (connectorSet.Size>=4)
+                if (connectorSet.Size >= 4)
                 {
                     IsManifold = true;
-                    
+
                     List<CustomConnector> customConnectors = new List<CustomConnector>();
                     foreach (Connector connector in connectorSet)
                     {
-                       
+
                         CustomConnector custom = new CustomConnector(doc, ElementId, PipeSystemType);
                         ConnectorSet nextconnectors = connector.AllRefs;
                         foreach (Connector connect in nextconnectors)
                         {
-                            
+
                             string sysname = doc.GetElement(connect.Owner.Id).LookupParameter("Имя системы").AsString();
 
                             if (doc.GetElement(connect.Owner.Id) is PipingSystem || doc.GetElement(connect.Owner.Id) is PipeInsulation)
                             {
                                 continue;
                             }
-                            
+
                             else if (connect.Owner.Id == ElementId)
                             {
                                 continue; // Игнорируем те же элементы
@@ -128,7 +128,7 @@ namespace PipeTreeV4
 
                                     if (pipeSystemType == PipeSystemType.SupplyHydronic)
                                     {
-                                        if (Reverse==false)
+                                        if (Reverse == false)
                                         {
                                             if (connect.Direction == FlowDirectionType.In || connect.Direction == FlowDirectionType.Out)
                                             {
@@ -160,11 +160,11 @@ namespace PipeTreeV4
                                                 customConnectors.Add(custom);
                                             }
                                         }
-                                       
+
                                     }
                                     else if (pipeSystemType == PipeSystemType.ReturnHydronic)
                                     {
-                                        if (Reverse==false)
+                                        if (Reverse == false)
                                         {
                                             if (connect.Direction == FlowDirectionType.Out || connect.Direction == FlowDirectionType.In)
                                             {
@@ -194,18 +194,18 @@ namespace PipeTreeV4
                                                 customConnectors.Add(custom);
                                             }
                                         }
-                                        
+
 
                                     }
                                 }
                             }
-                            
-                            
+
+
                         }
-                       
+
 
                     }
-                    Connectors=customConnectors;
+                    Connectors = customConnectors;
                 }
                 else
                 {
@@ -317,87 +317,147 @@ namespace PipeTreeV4
                     }
                 }
             }
-                
-                
-            
+
+
+
             catch
             {
 
             }
-            /* if (Connectors.Count == 1)
-             {
-                 custom.IsSelected = false;
-             }*/
+
             double maxVolume = double.MinValue;
             double maxCoefficient = double.MinValue;
             CustomConnector selectedConnector = null;
 
-            // Сначала ищем максимальный расход и учитываем, сколько коннекторов его имеют
+            // Сначала ищем максимальный расход и учитываем, сколько коннекторов его имеют 
             List<CustomConnector> connectorsWithMaxVolume = new List<CustomConnector>();
-
-            foreach (CustomConnector customConnector in Connectors)
+            //selectedConnector = Connectors.Select(x => x).Where(x => x.Coefficient == 0).FirstOrDefault();
+           if (Connectors.Count>1)
             {
-                double flow = customConnector.Flow;
-
-                // Если нашли больший расход, обновляем список и значение максимального расхода
-                if (flow > maxVolume)
+                if (ElementId.IntegerValue== 2948086)
                 {
-                    maxVolume = flow;
-                    connectorsWithMaxVolume.Clear();
-                    connectorsWithMaxVolume.Add(customConnector);
+                    selectedConnector = selectedConnector;
                 }
-                // Если расход равен текущему максимальному, добавляем коннектор в список
-                else if (flow == maxVolume)
-                {
-                    connectorsWithMaxVolume.Add(customConnector);
-                }
+               
             }
-
-            // Если есть более одного коннектора с максимальным расходом, осуществляем проверку по коэффициенту
-            if (connectorsWithMaxVolume.Count > 1)
-            {
-                // Сбрасываем максимальный коэффициент для новой проверки
-                foreach (var connector in connectorsWithMaxVolume)
+                foreach (CustomConnector customConnector in Connectors)
                 {
-                    double coeff = connector.Coefficient;
-
-                    // Проверяем, если текущий коэффициент больше максимального
-                    if (coeff > maxCoefficient)
+                    if (customConnector.Coefficient==0)
                     {
-                        maxCoefficient = coeff;
-                        selectedConnector = connector;
+                    selectedConnector = customConnector;
+                   
+                    break;
+                    }
+                    else if (customConnector.Coefficient > maxCoefficient)
+                    {
+                        maxCoefficient = customConnector.Coefficient;
+                        selectedConnector = customConnector;
+                        
+                    }
+                    
+                }
+                if (selectedConnector != null)
+                {
+                    selectedConnector.IsSelected = true;
+                    NextOwnerId = selectedConnector.NextOwnerId;
+                }
+            
+           // var connectorsCount = Connectors.Where(x => x.Coefficient == 0).Count();
+
+            /*if (connectorsCount == 0)
+            {
+                foreach (CustomConnector customConnector in Connectors)
+                {
+                    if (customConnector.Coefficient > maxCoefficient)
+                    {
+                        maxCoefficient = customConnector.Coefficient;
+                        selectedConnector = customConnector;
                     }
                 }
             }
-            else if (connectorsWithMaxVolume.Count == 1)
+            else
             {
-                // Если только один коннектор с максимальным расходом, выбираем его
-                selectedConnector = connectorsWithMaxVolume[0];
-            }
-
-            if (selectedConnector!=null)
-            {
-                selectedConnector.IsSelected = true;
-            }
-
-
-            /*foreach (CustomConnector customConnector in Connectors)
-            {
-                double flow = customConnector.Flow;
-                if (flow > maxvolume)
+                foreach (CustomConnector customConnector in Connectors)
                 {
-                    maxvolume = flow;
-                    selectedconnector = customConnector;
-
+                    if (customConnector.Coefficient == 0)
+                    {
+                        maxCoefficient = customConnector.Coefficient;
+                        selectedConnector = customConnector;
+                    }
                 }
             }*/
-            /*if (selectedconnector != null)
+           /* if (selectedConnector != null)
             {
-                selectedconnector.IsSelected = true;
-                NextOwnerId = selectedconnector.NextOwnerId;
-
-                //NextOwnerId = selectedconnector.Neighbourg;
+                selectedConnector.IsSelected = true;
             }*/
+            /*foreach (CustomConnector customConnector in Connectors)
+            {
+                if (customConnector.Flow > maxVolume)
+                {
+                    maxVolume = customConnector.Flow;
+                    selectedConnector = customConnector;
+                }
+            }*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+            /* foreach (CustomConnector customConnector in Connectors)
+             {
+                 double flow = customConnector.Flow;
+
+                 // Если нашли больший расход, обновляем список и значение максимального расхода
+                 if (flow > maxVolume)
+                 {
+                     maxVolume = flow;
+                     connectorsWithMaxVolume.Clear();
+                     connectorsWithMaxVolume.Add(customConnector);
+                 }
+                 // Если расход равен текущему максимальному, добавляем коннектор в список
+                 else if (flow == maxVolume)
+                 {
+                     connectorsWithMaxVolume.Add(customConnector);
+                 }
+             }
+
+             // Если есть более одного коннектора с максимальным расходом, осуществляем проверку по коэффициенту
+             if (connectorsWithMaxVolume.Count > 1)
+             {
+                 // Сбрасываем максимальный коэффициент для новой проверки
+                 foreach (var connector in connectorsWithMaxVolume)
+                 {
+                     double coeff = connector.Coefficient;
+
+                     // Проверяем, если текущий коэффициент больше максимального
+                     if (coeff > maxCoefficient)
+                     {
+                         maxCoefficient = coeff;
+                         selectedConnector = connector;
+                     }
+                 }
+             }
+             else if (connectorsWithMaxVolume.Count == 1)
+             {
+                 // Если только один коннектор с максимальным расходом, выбираем его
+                 selectedConnector = connectorsWithMaxVolume[0];
+             }
+
+             if (selectedConnector!=null)
+             {
+                 selectedConnector.IsSelected = true;
+             }*/
+
+
+
 
         }
 

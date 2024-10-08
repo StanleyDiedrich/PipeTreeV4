@@ -463,7 +463,7 @@ namespace PipeTreeV4
 
             }
 
-            
+           
 
 
             var equipment = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_MechanicalEquipment).WhereElementIsNotElementType().ToElementIds();
@@ -548,15 +548,16 @@ namespace PipeTreeV4
             {
 
                 lastnode = branch.Nodes.Last(); // Get the last added node
-                
 
                 
+
 
                 // secnode = lastnode;
-               try
+                try
                {
                     if (lastnode.Element is FamilyInstance)
                     {
+                        
                         tee_counter = branch.Nodes.Select(x => x).Where(y => y.IsTee == true).Count();
                         if (lastnode.Connectors.Count >= 4)
                         {
@@ -583,10 +584,16 @@ namespace PipeTreeV4
                         }
                         if(lastnode.IsTee)
                         {
+                            
+
                             double currentflow = lastnode.Connectors.Where(x => x.IsSelected).Select(x => x.Flow).First();
                             if (currentflow>maxflow/2)
                             {
                                 var nextelemId = lastnode.Connectors.Where(x => x.IsSelected).Select(x => x.NextOwnerId).First();
+                                if (nextelemId.IntegerValue== 2947861)
+                                {
+                                    nextelemId = nextelemId;
+                                }
                                 var newnode = new Node(doc, doc.GetElement(nextelemId), lastnode.PipeSystemType, shortsystemname, mode);
                                
                                 firsttee = branch.Nodes.Where(x => x.IsTee).Select(x => x).First();
@@ -1309,6 +1316,10 @@ namespace PipeTreeV4
                     foreach (Connector connector in connectors)
                     {
                         systemtype2 = connector.PipeSystemType;
+                        if (elementId.IntegerValue==2948947)
+                        {
+                            elementId = elementId;
+                        }
                         Node newnode = new Node(doc, doc.GetElement(elementId), systemtype2, shortsystemname, mode);
                         mainnode.Add(newnode);
 
@@ -1407,7 +1418,11 @@ namespace PipeTreeV4
                     {
                         var nextElement = doc.GetElement(lastnode.NextOwnerId);
                         Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname, mode);
-                        mainnode.Add(newnode); // Add the new node to the nodes list
+                       
+                        mainnode.Add(newnode);
+                        mainnode.IsOCK = true;
+                        mainnode.OCKCheck();
+                        // Add the new node to the nodes list
                     }
                     catch
                     {
