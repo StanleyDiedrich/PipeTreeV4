@@ -344,9 +344,14 @@ namespace PipeTreeV4
                 {
                     if (customConnector.Coefficient==0)
                     {
-                    selectedConnector = customConnector;
-                   
-                    break;
+                        if(customConnector.Flow>maxVolume)
+                        {
+                            maxVolume = customConnector.Flow;
+                            selectedConnector = customConnector;
+                        }
+
+
+                        break;
                     }
                     else if (customConnector.Coefficient > maxCoefficient)
                     {
