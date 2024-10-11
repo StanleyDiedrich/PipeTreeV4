@@ -648,6 +648,10 @@ namespace PipeTreeV4
                             {
                                 var nexteelement = GetManifoldReverseBranch(doc, lastnode, lastnode.PipeSystemType);
                                 var newnode = new Node(doc, doc.GetElement(nexteelement.ElementId), nexteelement.PipeSystemType, shortsystemname, mode);
+                                if (lastnode.IsOCK == true)
+                                {
+                                    newnode.IsOCK = true; // ДОБАВИЛ ДЛЯ КОРРЕКЦИИ ОЦК
+                                }
 
                                 branch.Add(newnode);
                                 lastnode = newnode;
@@ -659,8 +663,18 @@ namespace PipeTreeV4
                             lastnode = branch.Nodes.Select(x => x).Where(x => x.IsTee).Last();
                             var nextelemId = lastnode.Connectors.Where(x => x.IsSelected == false).Select(x => x.NextOwnerId).First();
                             var newnode = new Node(doc, doc.GetElement(nextelemId), lastnode.PipeSystemType, shortsystemname, mode);
+                            newnode.IsSelected = true;
+                            newnode.IsOCK = true;
+                            if (lastnode.IsOCK == true)
+                            {
+                                newnode.IsOCK = true; // ДОБАВИЛ ДЛЯ КОРРЕКЦИИ ОЦК
+                            }
+                            
                             branch.Add(newnode);
+                            
                             lastnode = newnode;
+                            lastnode.IsOCK = true;
+                            lastnode.IsSelected = true;
                         }
 
 
@@ -669,6 +683,10 @@ namespace PipeTreeV4
 
                             mode = true;
                             Node nxtnode = GetNextElemAfterEquipmentDeadEnd(doc, lastnode, branch, lastnode.Reverse );
+                            if (lastnode.IsOCK == true)
+                            {
+                                nxtnode.IsOCK = true; // ДОБАВИЛ ДЛЯ КОРРЕКЦИИ ОЦК
+                            }
                             branch.Add(nxtnode);
                             lastnode = nxtnode;
 
@@ -683,10 +701,13 @@ namespace PipeTreeV4
                             var nextelemId = lastnode.Connectors.Where(x => x.IsSelected).Select(x => x.NextOwnerId).First();
                                 
                                 var newnode = new Node(doc, doc.GetElement(nextelemId), lastnode.PipeSystemType, shortsystemname, mode);
+                            if (lastnode.IsOCK == true)
+                            {
+                                newnode.IsOCK = true; // ДОБАВИЛ ДЛЯ КОРРЕКЦИИ ОЦК
+                            }
 
-                               
-                                
-                                branch.Add(newnode);
+
+                            branch.Add(newnode);
                             //var unselectedconnecter = branch.Nodes.Where(x => x.IsTee).Select(x => x).First().Connectors.Where(x => !x.IsSelected).Select(x => x.NextOwnerId).First();
                             //firsttee = new Node(doc, doc.GetElement(unselectedconnecter), lastnode.PipeSystemType, shortsystemname, mode);
 
@@ -723,6 +744,10 @@ namespace PipeTreeV4
                         Node newnode = null;
 
                         newnode = new Node(doc, nextelement, lastnode.PipeSystemType, shortsystemname, mode);
+                        if (lastnode.IsOCK == true)
+                            {
+                                newnode.IsOCK = true; // ДОБАВИЛ ДЛЯ КОРРЕКЦИИ ОЦК
+                            }
                         branch.Add(newnode);
                         // Add the new node to the nodes list
                         // mainnodes.Add(branch); //
@@ -834,7 +859,7 @@ namespace PipeTreeV4
                   branch.AddRange(smallbranch);
               }*/
             branch.RemoveNull();
-
+            
             /*(firstVCKBranch, tees) = GetVCKBranchDeadEnd(doc, firsttee, branch);
             branch.AddRange(firstVCKBranch);*/
             return branch;
@@ -1063,7 +1088,8 @@ namespace PipeTreeV4
 
 
                         }
-                        if(lastnode.IsTee)
+                        
+                        if (lastnode.IsTee)
                         {
                             
 
@@ -1142,6 +1168,7 @@ namespace PipeTreeV4
                     branch.RemoveNull();
                     break;
                 }
+               
             }
            
             while (lastnode.NextOwnerId != null);
@@ -2034,6 +2061,7 @@ namespace PipeTreeV4
                             }
                         }
                         selectedbranch.IsOCK = true;
+                        
                         selectedbranch.OCKCheck();
                         mainnodes.AddRange(manbranches);
                     }    
@@ -2106,11 +2134,37 @@ namespace PipeTreeV4
                     try
                     {
                         var nextElement = doc.GetElement(lastnode.NextOwnerId);
-                        Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname, mode);
-                       
-                        mainnode.Add(newnode);
-                        mainnode.IsOCK = true;
-                        mainnode.OCKCheck();
+                        if (nextElement.LookupParameter("ADSK_Группирование").AsValueString() == "Воздухоотводчик")
+                        //if (lastnode.Element.LookupParameter("ADSK_Группирование").AsValueString() == "Воздухоотводчик")
+                        {
+                            lastnode = mainnode.Nodes.Where(x => x.IsTee).Select(x => x).LastOrDefault();
+                            var nextelemId = lastnode.Connectors.Where(x => !x.IsSelected).Select(x => x.NextOwnerId).First();
+                            //var nextelemId = lastnode.Connectors.Where(x => x.IsSelected == false).Select(x => x.NextOwnerId).First();
+                            Node newnode = new Node(doc, doc.GetElement(nextelemId), lastnode.PipeSystemType, shortsystemname, mode);
+                            newnode.IsSelected = true;
+                            newnode.IsOCK = true;
+                            if (lastnode.IsOCK == true)
+                            {
+                                newnode.IsOCK = true; // ДОБАВИЛ ДЛЯ КОРРЕКЦИИ ОЦК
+                            }
+                            lastnode.IsOCK = true;
+                            lastnode.IsSelected = true;
+                            mainnode.Add(newnode);
+                            mainnode.IsOCK = true;
+                            lastnode = newnode;
+
+                        }
+                        else
+                        {
+                            Node newnode = new Node(doc, nextElement, lastnode.PipeSystemType, shortsystemname, mode);
+
+                            mainnode.Add(newnode);
+                            mainnode.IsOCK = true;
+                            mainnode.OCKCheck();
+                        }
+
+
+                        
                         // Add the new node to the nodes list
                     }
                     catch
@@ -2118,10 +2172,11 @@ namespace PipeTreeV4
                         break;
                     }
                 }
-
+               
 
             }
             while (lastnode.NextOwnerId != null);
+            mainnode.RemoveNull();
             mainnodes.Add(mainnode);
 
             var additionalConnectors = mainnodes.SelectMany(branch => branch.Nodes)
@@ -2706,10 +2761,10 @@ namespace PipeTreeV4
             }
 
             var totalIds = new HashSet<int>();
-            foreach (var el in additionalNodes.Nodes)
+            /*foreach (var el in additionalNodes.Nodes)
             {
                 el.IsOCK = false;
-            }
+            }*/
             MEPSystem mepSystem = null;
             Node newStartElement = mainnodes.Last().Nodes[0];
             if ( newStartElement is FamilyInstance)
@@ -2914,8 +2969,8 @@ namespace PipeTreeV4
                     case 1:
                         mainnodes = AlgorithmFloorCollectorAndTihelman(doc, startelements, selected_workset);
                         SelectAllNodes(uIDocument, mainnodes);
-                        //string csvcontent = GetContent(doc, mainnodes);
-                        //SaveFile(csvcontent);
+                        string csvcontent = GetContent(doc, mainnodes);
+                        SaveFile(csvcontent);
                         break;  // Обязательно добавляем break для правильного выполнения
 
                     default:  // Обработка случая, если mode не совпадает ни с одним из вышеуказанных

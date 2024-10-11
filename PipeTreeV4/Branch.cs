@@ -48,6 +48,14 @@ namespace PipeTreeV4
                     node.IsOCK = true;
                 }
             }
+            else if (Nodes.Any(x=>x.IsOCK==true))
+            {
+                foreach (var node in Nodes)
+                {
+
+                    node.IsOCK = true;
+                }
+            }
             else
             {
                 foreach (var node in Nodes)
