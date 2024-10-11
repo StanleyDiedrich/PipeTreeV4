@@ -498,7 +498,7 @@ namespace PipeTreeV4
             }
             return nxtnode;
         }
-        public Branch GetDeadEndBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnode, List<Branch> mainnodes)
+        public Branch GetDeadEndBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnode, List<Branch> mainnodes, string selected_workset)
         {
             Branch branch = new Branch();
             List<Node> controltees = new List<Node>();
@@ -508,7 +508,7 @@ namespace PipeTreeV4
 
             foreach (var workset in worksets)
             {
-                if (workset.Name == "(30)_ОВ1_27")
+                if (workset.Name == selected_workset)
                 {
                     selected_workset_id = workset.Id;
                 }
@@ -840,7 +840,7 @@ namespace PipeTreeV4
             return branch;
         }
 
-        public Branch GetTihelmanBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnode, List<Branch> mainnodes)
+        public Branch GetTihelmanBranch(Autodesk.Revit.DB.Document doc, ElementId elementId, Branch mainnode, List<Branch> mainnodes, string selected_workset)
         {
             List<Node> controltees = new List<Node>();
             FilteredWorksetCollector collector = new FilteredWorksetCollector(doc);
@@ -849,7 +849,7 @@ namespace PipeTreeV4
             
             foreach (var workset in worksets)
             {
-                if (workset.Name == "(30)_ОВ1_27")
+                if (workset.Name == selected_workset)
                 {
                     selected_workset_id = workset.Id;
                 }
@@ -1902,7 +1902,7 @@ namespace PipeTreeV4
 
             return branch;
         }
-        public (List<Branch>, Branch) GetTihelmanBranches(Autodesk.Revit.DB.Document doc, ElementId elementId)
+        public (List<Branch>, Branch) GetTihelmanBranches(Autodesk.Revit.DB.Document doc, ElementId elementId, string selected_workset)
         {
 
 
@@ -2012,7 +2012,7 @@ namespace PipeTreeV4
                             {
 
                                 // GetNewBranch(doc, node.ElementId, mainnodes);
-                                manbranch = GetDeadEndBranch(doc, node.ElementId, manbranch, mainnodes);
+                                manbranch = GetDeadEndBranch(doc, node.ElementId, manbranch, mainnodes, selected_workset);
                                 manbranch.RemoveNull();
                                 manbranch.GetPressure();
                                 manbranches.Add(manbranch);
@@ -2071,7 +2071,7 @@ namespace PipeTreeV4
                             {
 
                                 // GetNewBranch(doc, node.ElementId, mainnodes);
-                                manbranch = GetTihelmanBranch(doc, node.ElementId, manbranch, mainnodes);
+                                manbranch = GetTihelmanBranch(doc, node.ElementId, manbranch, mainnodes, selected_workset);
                                 manbranch.RemoveNull();
                                 manbranch.GetPressure();
                                 manbranches.Add(manbranch);
@@ -2671,7 +2671,7 @@ namespace PipeTreeV4
             mainnodes.AddRange(secondarySupernodes);
             return mainnodes;
         }
-        private List<Branch> AlgorithmFloorCollectorAndTihelman(Document doc, List<ElementId> startelements)
+        private List<Branch> AlgorithmFloorCollectorAndTihelman(Document doc, List<ElementId> startelements, string selected_workset)
         {
             List<Branch> mainnodes = new List<Branch>(); // тут стояк 
             List<Branch> secondarynodes = new List<Branch>();
@@ -2686,7 +2686,7 @@ namespace PipeTreeV4
 
             foreach (var startelement in startelements)
             {
-                (mainnodes, additionalNodes) = GetTihelmanBranches(doc, startelement);
+                (mainnodes, additionalNodes) = GetTihelmanBranches(doc, startelement, selected_workset);
 
 
             }
@@ -2758,7 +2758,7 @@ namespace PipeTreeV4
                     
                     var nextStartelement = nextstartelement.NextOwnerId;
                     
-                    (secondarynodes, secAdditionalNodes) = GetTihelmanBranches(doc, nextStartelement);
+                    (secondarynodes, secAdditionalNodes) = GetTihelmanBranches(doc, nextStartelement, selected_workset);
 
                     foreach (var secondarynode in secondarynodes)
                     {
@@ -2821,7 +2821,7 @@ namespace PipeTreeV4
             UIApplication uiapp = commandData.Application;
             UIDocument uIDocument = uiapp.ActiveUIDocument;
             Autodesk.Revit.DB.Document doc = uIDocument.Document;
-
+           
             List<string> systemnumbers = new List<string>();
             IList<Element> pipes = new FilteredElementCollector(doc).OfCategory(BuiltInCategory.OST_PipeCurves).WhereElementIsNotElementType().ToElements();
             foreach (Element pipe in pipes)
@@ -2860,7 +2860,7 @@ namespace PipeTreeV4
             window.DataContext = mainViewModel;
             window.ShowDialog();
 
-
+            var selected_workset = mainViewModel.SelectedWorkSet.Name;
 
             List<ElementId> elIds = new List<ElementId>();
             var systemnames = mainViewModel.SystemNumbersList.Select(x => x).Where(x => x.IsSelected == true);
@@ -2912,7 +2912,7 @@ namespace PipeTreeV4
                         break;  // Обязательно добавляем break для правильного выполнения
 
                     case 1:
-                        mainnodes = AlgorithmFloorCollectorAndTihelman(doc, startelements);
+                        mainnodes = AlgorithmFloorCollectorAndTihelman(doc, startelements, selected_workset);
                         SelectAllNodes(uIDocument, mainnodes);
                         //string csvcontent = GetContent(doc, mainnodes);
                         //SaveFile(csvcontent);

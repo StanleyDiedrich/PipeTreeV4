@@ -17,6 +17,18 @@ namespace PipeTreeV4
         private ObservableCollection<SystemNumber> _systemNumbersList;
 
         public ObservableCollection<CalculationMode> CalculationModes { get; set; }
+        public ObservableCollection<Workset> WorkSets { get; set; } = new ObservableCollection<Workset>();
+
+        private Workset _selectedWorkSet;
+        public Workset SelectedWorkSet
+        {
+            get => _selectedWorkSet;
+            set
+            {
+                _selectedWorkSet = value;
+                OnPropertyChanged("SelectedWorkSet");
+            }
+        }
         private SystemNumber _selectedSystemNumber;
         private Autodesk.Revit.DB.Document document;
         public Autodesk.Revit.DB.Document Document
@@ -194,6 +206,14 @@ namespace PipeTreeV4
             Window = window;
             Document = doc;
             SystemNumbersList = systemNumbers;
+            FilteredWorksetCollector collector = new FilteredWorksetCollector(doc);
+            IList<Workset> worksets = collector.OfKind(WorksetKind.UserWorkset).ToWorksets();
+            foreach (var workset in worksets)
+            {
+                WorkSets.Add(workset);
+            }
+           
+
             ShowSelectedSystemsCommand = new RelayCommand(ShowSelectedSystems);
             StartCommand = new RelayCommand(StartCalculate);
             CalculationModes = new ObservableCollection<CalculationMode>
