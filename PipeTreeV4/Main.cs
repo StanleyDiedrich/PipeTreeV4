@@ -648,10 +648,7 @@ namespace PipeTreeV4
                             {
                                 var nexteelement = GetManifoldReverseBranch(doc, lastnode, lastnode.PipeSystemType);
                                 var newnode = new Node(doc, doc.GetElement(nexteelement.ElementId), nexteelement.PipeSystemType, shortsystemname, mode);
-                                if (lastnode.IsOCK == true)
-                                {
-                                    newnode.IsOCK = true; // ДОБАВИЛ ДЛЯ КОРРЕКЦИИ ОЦК
-                                }
+                                
 
                                 branch.Add(newnode);
                                 lastnode = newnode;
@@ -665,10 +662,7 @@ namespace PipeTreeV4
                             var newnode = new Node(doc, doc.GetElement(nextelemId), lastnode.PipeSystemType, shortsystemname, mode);
                             newnode.IsSelected = true;
                             newnode.IsOCK = true;
-                            if (lastnode.IsOCK == true)
-                            {
-                                newnode.IsOCK = true; // ДОБАВИЛ ДЛЯ КОРРЕКЦИИ ОЦК
-                            }
+                            
                             
                             branch.Add(newnode);
                             
@@ -683,10 +677,7 @@ namespace PipeTreeV4
 
                             mode = true;
                             Node nxtnode = GetNextElemAfterEquipmentDeadEnd(doc, lastnode, branch, lastnode.Reverse );
-                            if (lastnode.IsOCK == true)
-                            {
-                                nxtnode.IsOCK = true; // ДОБАВИЛ ДЛЯ КОРРЕКЦИИ ОЦК
-                            }
+                           
                             branch.Add(nxtnode);
                             lastnode = nxtnode;
 
@@ -701,18 +692,11 @@ namespace PipeTreeV4
                             var nextelemId = lastnode.Connectors.Where(x => x.IsSelected).Select(x => x.NextOwnerId).First();
                                 
                                 var newnode = new Node(doc, doc.GetElement(nextelemId), lastnode.PipeSystemType, shortsystemname, mode);
-                            if (lastnode.IsOCK == true)
-                            {
-                                newnode.IsOCK = true; // ДОБАВИЛ ДЛЯ КОРРЕКЦИИ ОЦК
-                            }
+                           
 
 
                             branch.Add(newnode);
-                            //var unselectedconnecter = branch.Nodes.Where(x => x.IsTee).Select(x => x).First().Connectors.Where(x => !x.IsSelected).Select(x => x.NextOwnerId).First();
-                            //firsttee = new Node(doc, doc.GetElement(unselectedconnecter), lastnode.PipeSystemType, shortsystemname, mode);
-
-                            //firsttee = branch.Nodes.Where(x => x.IsTee).Select(x => x).First();
-                            //(firstVCKBranch, tees) = GetVCKBranchDeadEnd(doc, firsttee, branch);
+                            
                             lastnode = newnode;
 
                                 
@@ -744,13 +728,9 @@ namespace PipeTreeV4
                         Node newnode = null;
 
                         newnode = new Node(doc, nextelement, lastnode.PipeSystemType, shortsystemname, mode);
-                        if (lastnode.IsOCK == true)
-                            {
-                                newnode.IsOCK = true; // ДОБАВИЛ ДЛЯ КОРРЕКЦИИ ОЦК
-                            }
+                       
                         branch.Add(newnode);
-                        // Add the new node to the nodes list
-                        // mainnodes.Add(branch); //
+                        
                     }
 
 
@@ -770,6 +750,13 @@ namespace PipeTreeV4
             }
 
             while (lastnode.NextOwnerId != null);
+            branch.GetBranchNumber();
+            foreach (var node in branch.Nodes)
+            {
+                node.IsOCK = true;
+            }
+            /*branch.IsOCK = true;
+            branch.OCKCheck();*/
             branch.RemoveNull();
 
             var ftees = branch.Nodes.Where(x => x.IsTee && x.Connectors.All(c => c.Coefficient != 0)).ToList();
@@ -794,6 +781,13 @@ namespace PipeTreeV4
                     }
                     // Получаем ветвь для тройника
                     (firstVCKBranch, tees) = GetVCKBranchDeadEnd(doc, snode, branch);
+                    foreach (var node2 in firstVCKBranch.Nodes)
+                    {
+                        node2.IsOCK = false;
+                    }
+                    /*firstVCKBranch.IsOCK = false;
+                    firstVCKBranch.OCKCheck();*/
+                    firstVCKBranch.GetBranchNumber();
                     branch.AddRange(firstVCKBranch);
 
                     var node = firstVCKBranch.Nodes.Where(x => x.IsTee && x.IsSelected == false).Select(x => x).FirstOrDefault();
@@ -813,6 +807,13 @@ namespace PipeTreeV4
                             }
                             // Получаем ветвь для тройника
                             (secondVCKBranch, tees) = GetVCKBranchDeadEnd(doc, snode, branch);
+                            foreach(var node2 in secondVCKBranch.Nodes)
+                            {
+                                node2.IsOCK = false;
+                            }
+                            /*secondVCKBranch.IsOCK = false;
+                            secondVCKBranch.OCKCheck();*/
+                            secondVCKBranch.GetBranchNumber();
                             branch.AddRange(secondVCKBranch);
                         }
                     }
@@ -838,9 +839,15 @@ namespace PipeTreeV4
                 {
                     Node snode = new Node(doc, doc.GetElement(connector), lastnode.PipeSystemType, lastnode.ShortSystemName, true);
                     Branch smallbranch = GetSmallBranch(doc, snode, branch);
+                    foreach (var node2 in smallbranch.Nodes)
+                    {
+                        node2.IsOCK = false;
+                    }
+                    /*smallbranch.IsOCK = false;
+                    smallbranch.OCKCheck();*/
                     branch.AddRange(smallbranch);
                 }
-                    //Node snode = new Node(doc, doc.GetElement(connector), lastnode.PipeSystemType, lastnode.ShortSystemName, false);
+                    
                     
                     
                 
@@ -853,15 +860,10 @@ namespace PipeTreeV4
 
 
 
-            /*  foreach (var node in foundedtees)
-              {
-                  Branch smallbranch = GetSmallBranch(doc, node, branch);
-                  branch.AddRange(smallbranch);
-              }*/
+           
             branch.RemoveNull();
             
-            /*(firstVCKBranch, tees) = GetVCKBranchDeadEnd(doc, firsttee, branch);
-            branch.AddRange(firstVCKBranch);*/
+           
             return branch;
         }
 
@@ -1196,7 +1198,15 @@ namespace PipeTreeV4
 
 
             (firstVCKBranch, tees) = GetVCKBranch(doc, firsttee, branch);
+            firstVCKBranch.Number++;
+            firstVCKBranch.IsOCK = false;
+            //firstVCKBranch.OCKCheck();
+            firstVCKBranch.GetBranchNumber();
             (secondVCKBranch, tees) = GetSecondVCKBranch(doc, VCK2_node, branch);
+            secondVCKBranch.Number++;
+            secondVCKBranch.GetBranchNumber();
+            secondVCKBranch.IsOCK = false;
+           // secondVCKBranch.OCKCheck();
             branch.AddRange(firstVCKBranch);
             branch.AddRange(secondVCKBranch);
             branch.RemoveNull();
@@ -1225,6 +1235,8 @@ namespace PipeTreeV4
             {
                 
                 Branch smallbranch = GetSmallBranch(doc, node, branch);
+                smallbranch.GetBranchNumber();
+                smallbranch.Number++;
                 branch.AddRange(smallbranch);
             }
                
@@ -1328,7 +1340,13 @@ namespace PipeTreeV4
                         newbranch.Nodes.Add(node);
                     }
                 }
-
+                newbranch.GetBranchNumber();
+                foreach (var node in newbranch.Nodes)
+                {
+                    node.IsOCK = false;
+                }
+                /*newbranch.IsOCK = false;
+                newbranch.OCKCheck();*/
                 return (newbranch, tees);
             }
 
@@ -1457,7 +1475,13 @@ namespace PipeTreeV4
                         newbranch.Nodes.Add(node);
                     }
                 }
-
+                newbranch.GetBranchNumber();
+                foreach (var node in newbranch.Nodes)
+                {
+                    node.IsOCK = false;
+                }
+                //newbranch.IsOCK = false;
+                // newbranch.OCKCheck();
                 return (newbranch, tees);
             }
            
@@ -1596,6 +1620,13 @@ namespace PipeTreeV4
             
 
             while (lastnode.IsTee==true || lastnode!=null);
+            branch.GetBranchNumber();
+            foreach (var node2 in branch.Nodes)
+            {
+                node2.IsOCK = false;
+            }
+            /* branch.IsOCK = false;
+             branch.OCKCheck();*/
             return branch;
 
         }
@@ -1723,6 +1754,13 @@ namespace PipeTreeV4
                     }
 
                 }
+                newbranch.GetBranchNumber();
+            foreach (var node in newbranch.Nodes)
+            {
+                node.IsOCK = false;
+            }
+               /* newbranch.IsOCK = false;
+                newbranch.OCKCheck();*/
                 return (newbranch, tees);
             
            
@@ -1872,7 +1910,7 @@ namespace PipeTreeV4
                 }
                
             }
-
+            newbranch.GetBranchNumber();
             return (newbranch, tees);
         }
 
@@ -1973,10 +2011,7 @@ namespace PipeTreeV4
             {
                
                 lastnode = mainnode.Nodes.Last(); // Get the last added node
-                if (lastnode.ElementId.IntegerValue == 2894980)
-                {
-                    lastnode = lastnode;
-                }
+               
                 PipeSystemType systemtype2;
                 string shortsystemname2;
                 if (doc.GetElement(elementId) is Pipe)
@@ -1994,10 +2029,7 @@ namespace PipeTreeV4
                     foreach (Connector connector in connectors)
                     {
                         systemtype2 = connector.PipeSystemType;
-                        if (elementId.IntegerValue==2946736)
-                        {
-                            elementId = elementId;
-                        }
+                       
                         Node newnode = new Node(doc, doc.GetElement(elementId), systemtype2, shortsystemname, mode);
                         mainnode.Add(newnode);
 
@@ -2011,12 +2043,11 @@ namespace PipeTreeV4
 
                     if (paramValue!=null)
                     {
-                        if (lastnode.ElementId.IntegerValue == 3307606)
-                        { lastnode = lastnode; }
-                        foreach (var node in mainnode.Nodes)
+                       
+                        /*foreach (var node in mainnode.Nodes)
                         {
                             node.IsOCK = true;
-                        }
+                        }*/
                         List<Branch> manbranches = new List<Branch>();
                         List<Branch> manifoldbranches = new List<Branch>();
                         if (lastnode.Reverse == false)
@@ -2040,6 +2071,8 @@ namespace PipeTreeV4
 
                                 // GetNewBranch(doc, node.ElementId, mainnodes);
                                 manbranch = GetDeadEndBranch(doc, node.ElementId, manbranch, mainnodes, selected_workset);
+                                //manbranch.IsOCK = false;
+                                //manbranch.OCKCheck();
                                 manbranch.RemoveNull();
                                 manbranch.GetPressure();
                                 manbranches.Add(manbranch);
@@ -2048,9 +2081,58 @@ namespace PipeTreeV4
 
                         }
 
-                        Branch selectedbranch = new Branch();
-                        double maxpressure = double.MinValue;
+                        Branch selectedbranch = null; // Инициализируем как null, чтобы проверить, была ли выбрана ветка
+                        double maxvolume = double.MinValue;
+
+                        // Находим ветку с максимальным расходом
                         foreach (var manifoldbranch in manbranches)
+                        {
+                            if (manifoldbranch.Nodes.Count > 0 && manifoldbranch.Nodes[0].Connectors.Count > 0)
+                            {
+                                double flow = manifoldbranch.Nodes[0].Connectors[0].Flow;
+
+                                if (flow > maxvolume)
+                                {
+                                    selectedbranch = manifoldbranch; // Обновляем выбранную ветку
+                                    maxvolume = flow; // Обновляем максимальный поток
+                                }
+                            }
+                        }
+
+                        // Устанавливаем IsOCK для узлов выбранной ветви
+                        if (selectedbranch != null) // Проверяем, что мы нашли ветку с расходом
+                        {
+                            foreach (var node in selectedbranch.Nodes)
+                            {
+                                if (node.IsOCK==true)
+                                {
+                                    node.IsOCK = true;
+                                }
+
+
+                                // Отмечаем IsOCK для узлов выбранной ветви
+                            }
+                            mainnodes.Add(selectedbranch);
+                        }
+
+                        // Перебираем все остальные ветви и устанавливаем IsOCK в false
+                        foreach (var manifoldbranch in manbranches)
+                        {
+                            if (manifoldbranch != selectedbranch) // Проверяем, что это не выбранная ветвь
+                            {
+                                foreach (var node in manifoldbranch.Nodes)
+                                {
+                                    node.IsOCK = false; // Сбрасываем IsOCK для узлов других ветвей
+                                }
+                            }
+                            mainnodes.Add(manifoldbranch);
+                        }
+
+                        //selectedbranch.MainBranch = true;
+
+
+
+                        /*foreach (var manifoldbranch in manbranches)
                         {
                             double pressure = manifoldbranch.DPressure;
                             if (pressure > maxpressure)
@@ -2059,11 +2141,12 @@ namespace PipeTreeV4
                                 maxpressure = pressure;
 
                             }
-                        }
-                        selectedbranch.IsOCK = true;
-                        
-                        selectedbranch.OCKCheck();
-                        mainnodes.AddRange(manbranches);
+                        }*/
+
+                        //selectedbranch.IsOCK = true;
+
+                        //selectedbranch.OCKCheck();
+                       // mainnodes.AddRange(manbranches);
                     }    
 
                     else if (paramValue==null)
@@ -2100,6 +2183,7 @@ namespace PipeTreeV4
 
                                 // GetNewBranch(doc, node.ElementId, mainnodes);
                                 manbranch = GetTihelmanBranch(doc, node.ElementId, manbranch, mainnodes, selected_workset);
+                                
                                 manbranch.RemoveNull();
                                 manbranch.GetPressure();
                                 manbranches.Add(manbranch);
@@ -2120,8 +2204,8 @@ namespace PipeTreeV4
 
                             }
                         }
-                        selectedbranch.IsOCK = true;
-                        selectedbranch.OCKCheck();
+                        //selectedbranch.IsOCK = true;
+                        //selectedbranch.OCKCheck();
                         mainnodes.AddRange(manbranches);
                     }
                     
@@ -2425,7 +2509,7 @@ namespace PipeTreeV4
                         }
                     }
                     selectedbranch.IsOCK = true;
-                    selectedbranch.OCKCheck();
+                   // selectedbranch.OCKCheck();
 
                     // Тут мы дошли только до первого уровня и тут покажутся коллекторы поквартирные.
 
@@ -2458,7 +2542,7 @@ namespace PipeTreeV4
                     {
 
                         selectedsecondbranch.IsOCK = true;
-                        selectedsecondbranch.OCKCheck();
+                        //selectedsecondbranch.OCKCheck();
                         mainnodes.AddRange(manbranches);
                         mainnodes.AddRange(selectedsecondarybranches);
 
@@ -2742,7 +2826,7 @@ namespace PipeTreeV4
             foreach (var startelement in startelements)
             {
                 (mainnodes, additionalNodes) = GetTihelmanBranches(doc, startelement, selected_workset);
-
+               
 
             }
 
@@ -2761,10 +2845,7 @@ namespace PipeTreeV4
             }
 
             var totalIds = new HashSet<int>();
-            /*foreach (var el in additionalNodes.Nodes)
-            {
-                el.IsOCK = false;
-            }*/
+            
             MEPSystem mepSystem = null;
             Node newStartElement = mainnodes.Last().Nodes[0];
             if ( newStartElement is FamilyInstance)
@@ -2804,10 +2885,7 @@ namespace PipeTreeV4
 
             foreach (var startelement in starttees)
             {
-                if (startelement.ElementId.IntegerValue==2946736)
-                {
-                    var startelement2 = startelement;
-                }
+               
                 foreach (var nextstartelement in startelement.Connectors )
                 {
                     
@@ -2837,33 +2915,7 @@ namespace PipeTreeV4
                 }
                
             }
-                /*foreach (var startelement in additionalNodes.Nodes)
-                {
-
-                        var nextStartelement = startelement.ElementId;
-                        (secondarynodes, secAdditionalNodes) = GetTihelmanBranches(doc, nextStartelement);
-
-                        foreach (var secondarynode in secondarynodes)
-                        {
-                            Branch branch = new Branch();
-                            foreach (var node in secondarynode.Nodes)
-                            {
-                                node.IsOCK = false;
-                                if (totalIds.Add(node.ElementId.IntegerValue))
-                                {
-                                    branch.Add(node);
-                                }
-                            }
-                            // Добавляем только уникальные элементы
-                            if (branch.Nodes.Count != 0)
-                            {
-                                secondarySupernodes.Add(branch);
-                            }
-                            else
-                            { continue; }
-
-                        }
-                }*/
+                
 
 
                 mainnodes.AddRange(secondarySupernodes);

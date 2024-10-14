@@ -14,15 +14,22 @@ namespace PipeTreeV4
         public int Number { get; set; }
         public double DPressure { get; set; }
          public List<Node> Nodes { get; set; }
-         
+         public bool MainBranch { get; set; }
         public bool IsOCK { get; set; }
         public Branch ()
         {
-            Number = ++_counter;
+            Number = _counter++;
             Nodes = new List<Node>();
             
         }
-
+        public void GetBranchNumber()
+        {
+            foreach (var node in Nodes)
+            {
+                node.BranchNumber = Number;
+            }
+           
+        }
         public void  Add(Node node)
         {
             Nodes.Add(node);
@@ -48,14 +55,14 @@ namespace PipeTreeV4
                     node.IsOCK = true;
                 }
             }
-            else if (Nodes.Any(x=>x.IsOCK==true))
+            /*else if (Nodes.Any(x=>x.IsOCK==true))
             {
                 foreach (var node in Nodes)
                 {
 
                     node.IsOCK = true;
                 }
-            }
+            }*/
             else
             {
                 foreach (var node in Nodes)
@@ -79,6 +86,8 @@ namespace PipeTreeV4
 
             Nodes = nonNullNodes;  // Update the Nodes list
         }
+
+
 
         public double GetPressure() // Эту шляпу определили с целью поиска общей потери давления на ответвлении
         {
