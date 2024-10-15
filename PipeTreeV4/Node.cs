@@ -36,6 +36,7 @@ namespace PipeTreeV4
         public bool IsOCK { get; set; }
         public bool Reverse { get; set; }
         public int TeeNumber { get; set; }
+        public int BranchNumber { get; set; }
 
 
         public Node(Autodesk.Revit.DB.Document doc, Element element, PipeSystemType pipeSystemType, string shortsystemName, bool reverse)
@@ -45,7 +46,7 @@ namespace PipeTreeV4
             ShortSystemName = shortsystemName;
             PipeSystemType = pipeSystemType;
             Reverse = reverse;
-
+            
 
 
             ConnectorSet connectorSet = null;
@@ -366,8 +367,8 @@ namespace PipeTreeV4
                     selectedConnector.IsSelected = true;
                     NextOwnerId = selectedConnector.NextOwnerId;
                 }
-            
-           // var connectorsCount = Connectors.Where(x => x.Coefficient == 0).Count();
+
+            // var connectorsCount = Connectors.Where(x => x.Coefficient == 0).Count();
 
             /*if (connectorsCount == 0)
             {
@@ -391,10 +392,10 @@ namespace PipeTreeV4
                     }
                 }
             }*/
-           /* if (selectedConnector != null)
-            {
-                selectedConnector.IsSelected = true;
-            }*/
+            /* if (selectedConnector != null)
+             {
+                 selectedConnector.IsSelected = true;
+             }*/
             /*foreach (CustomConnector customConnector in Connectors)
             {
                 if (customConnector.Flow > maxVolume)
@@ -462,7 +463,7 @@ namespace PipeTreeV4
              }*/
 
 
-
+           
 
         }
 

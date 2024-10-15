@@ -40,7 +40,11 @@
                     </DataTemplate>
                 </ListBox.ItemTemplate>
             </ListBox>
-
+            <TextBlock Text="Выберите рабочий набор:" FontWeight="Bold" FontSize="16" Margin="0,0,0,10"/>
+            <ComboBox ItemsSource="{Binding WorkSets}" 
+                  SelectedItem="{Binding SelectedWorkSet, Mode=TwoWay}" 
+                  DisplayMemberPath="Name" 
+                  Height="30" Margin="0,0,0,15"/>
             <!-- Кнопка для начала расчета -->
             <Button Content="Начать" Command="{Binding StartCommand}" Margin="0,10,0,10" 
                     Background="#5B9BD5" Foreground="White" Padding="10"/>

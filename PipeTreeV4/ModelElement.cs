@@ -199,7 +199,9 @@ namespace PipeTreeV4
                    
                     Diameter = 0;
                 }
-                ModelBranchNumber = branchcounter;
+
+                // ModelBranchNumber = branchcounter;
+                ModelBranchNumber = node.BranchNumber;
                 ModelTrackNumber = counter;
             }
 
